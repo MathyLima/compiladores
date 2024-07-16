@@ -23,6 +23,7 @@ Token Scanner::nextToken()
     state = 0;
     char currentChar;
     std::string content = "";
+    bool isDecimal = false;
     while (true)
     {
         if (isEOF())
@@ -43,10 +44,14 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
-            else if (std::isdigit(currentChar))
+            else if (isdigit(currentChar))
             {
                 content += currentChar;
                 state = 3;
+            }
+            else if(currentChar=='.'){
+                content +=currentChar;
+                state = 4;
             }
             else
             {
@@ -54,7 +59,7 @@ Token Scanner::nextToken()
             }
             break;
         case 1:
-            if (isLetter(currentChar) || std::isdigit(currentChar))
+            if (isLetter(currentChar) || isdigit(currentChar))
             {
                 content += currentChar;
                 state = 1;
@@ -67,15 +72,28 @@ Token Scanner::nextToken()
         case 2:
             back();
             return Token(TokenType::IDENTIFIER, content);
+
+
         case 3:
-            if (std::isdigit(currentChar))
+            if (isdigit(currentChar))
             {
                 content += currentChar;
                 state = 3;
             }
+            else if(currentChar == '.'){
+                if(isDecimal == false){
+                    content += currentChar;
+                    state = 4;
+                }
+                else{
+                    isDecimal = false;
+                    throw std::runtime_error("Malformed number: " + content + currentChar);
+
+                }
+            }
             else if (isOperator(currentChar) || isSpace(currentChar))
-            {
-                state = 4;
+            {   
+                state = 5;
             }
             else
             {
@@ -83,6 +101,17 @@ Token Scanner::nextToken()
             }
             break;
         case 4:
+            if(isDigit(currentChar)){
+                isDecimal = true;
+                content += currentChar;
+                state = 3;
+            }
+            else{
+                throw std::runtime_error("Malformed number: " + content + currentChar);
+            }
+            break;
+        case 5:
+            isDecimal = false;
             back();
             return Token(TokenType::NUMBER, content);
         default:
@@ -90,6 +119,12 @@ Token Scanner::nextToken()
         }
     }
 }
+
+bool Scanner::isDigit(char c){
+    return (c>='0' && c<='9');
+}
+
+
 
 bool Scanner::isLetter(char c)
 {
@@ -104,7 +139,7 @@ bool Scanner::isSpace(char c)
 bool Scanner::isOperator(char c)
 {
     return c == '=' || c == '>' || c == '<' || c == '!' || c == '+' || c == '-' ||
-           c == '*' || c == '/';
+           c == '*' || c == '/'; 
 }
 
 char Scanner::nextChar()

@@ -19,6 +19,8 @@ public:
     Token nextToken();
 
 private:
+    bool isDigit(char c);
+    bool isFloatPoint(char c);
     bool isLetter(char c);
     bool isSpace(char c);
     bool isOperator(char c);
