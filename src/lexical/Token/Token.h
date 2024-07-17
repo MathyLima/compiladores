@@ -12,7 +12,8 @@ enum class TokenType
     REL_OPERATOR,
     ASSIGNMENT,
     LITERAL,
-    NONE
+    REL_FUNCTION,
+    NONE,
 };
 
 class Token

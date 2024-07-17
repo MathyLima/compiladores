@@ -23,7 +23,8 @@ private:
     bool isFloatPoint(char c);
     bool isLetter(char c);
     bool isSpace(char c);
-    bool isOperator(char c);
+    bool isRelationalOperator(char c);
+    bool isEquationOperator(char c);
     char nextChar();
     void back();
     bool isEOF();

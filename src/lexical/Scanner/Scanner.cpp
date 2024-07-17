@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <cctype>
+#include <vector>
 
 Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
 {
@@ -23,8 +24,10 @@ Token Scanner::nextToken()
     state = 0;
     char currentChar;
     std::string content = "";
+    
+    
     while (true)
-    {
+    {   
         if (isEOF())
         {
             return Token(TokenType::NONE, "");
@@ -51,6 +54,10 @@ Token Scanner::nextToken()
             else if(currentChar=='.'){
                 content +=currentChar;
                 state = 4;
+            }
+            else if(isRelationalOperator(currentChar)){
+                content+=currentChar;
+                state=7;
             }
             else
             {
@@ -88,9 +95,15 @@ Token Scanner::nextToken()
                     state = 4;
             
             }
-            else if (isOperator(currentChar) || isSpace(currentChar))
+            else if (isSpace(currentChar))
             {   
                 state = 6;
+            }
+            else if (isRelationalOperator(currentChar)){
+                content+=currentChar;
+                back();
+                state = 7;
+                return Token(TokenType::NUMBER, content);
             }
             else
             {
@@ -109,11 +122,17 @@ Token Scanner::nextToken()
             }
             break;
         case 5:
+        // Esse case serve para verificar se só há digitos, operadores ou espaço após meu ponto flutuante
             if(isDigit(currentChar)){
                 content+=currentChar;
             }
-            else if(isOperator(currentChar) || isSpace(currentChar)){
+            else if(isSpace(currentChar)){
                 state = 6;
+            }
+            else if(isRelationalOperator(currentChar)){
+                state = 7;
+                back();
+                return Token(TokenType::NUMBER, content);
             }
             else{
                 throw std::runtime_error("Malformed Float Number: " + content + currentChar);
@@ -123,10 +142,75 @@ Token Scanner::nextToken()
             back();
             return Token(TokenType::NUMBER, content);
 // --------------------------------------------------------------------------------------------------
+// Operadores e equações
+    case 7:
 
-        default:
-            break;
+        if (isRelationalOperator(currentChar)) {
+            if(content.size() <= 1){
+                content += currentChar;
+                state = 7;
+            }
+            if (content.size() == 2) {
+                state = 8; // Vai para o estado 8 para verificar operador de igualdade ==
+            }
+            
+            else{
+                throw std::runtime_error("Malformed Relational function: " + content + currentChar);
+            }
         }
+        else if (isSpace(currentChar)) {
+            back();
+            state = 9;
+            return Token(TokenType::REL_OPERATOR, content);
+        }
+        else if (isdigit(currentChar)) {
+            back();
+            state = 3;
+            return Token(TokenType::REL_OPERATOR, content);
+        }
+        else if (currentChar == '.') {
+            back();
+            state = 4;
+            return Token(TokenType::REL_OPERATOR, content);
+        }
+        else {
+            throw std::runtime_error("Malformed Relational function: " + content + currentChar);
+        }
+        break;
+
+case 8:
+    if (content[0] == '=' && content[1] == '=' || content[0]!='=') {
+        state = 10; // Volta para o estado 7 para continuar processando operadores relacionais
+    }
+   
+    else {
+        throw std::runtime_error("Malformed Relational function: " + content);
+    }
+    back(); // Volta um caractere para reavaliar o operador
+
+    break;
+
+case 9:
+        back();
+        return Token(TokenType::REL_FUNCTION, content);
+
+        
+case 10:
+    if(isRelationalOperator(currentChar)||isLetter(currentChar)){
+        throw std::runtime_error("Malformed Relational function: " + content + currentChar);
+    }
+    else{
+        back();
+        state = 7;
+    }
+
+    break;
+
+default:
+        break;
+    }
+
+
     }
 }
 
@@ -146,10 +230,14 @@ bool Scanner::isSpace(char c)
     return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 
-bool Scanner::isOperator(char c)
+bool Scanner::isRelationalOperator(char c)
 {
-    return c == '=' || c == '>' || c == '<' || c == '!' || c == '+' || c == '-' ||
-           c == '*' || c == '/'; 
+    return c == '=' || c == '>' || c == '<' || c == '!'; 
+}
+
+bool Scanner::isEquationOperator(char c)
+{
+    return c == '+' || c == '-' || c == '*' || c == '/';
 }
 
 char Scanner::nextChar()
