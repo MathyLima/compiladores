@@ -23,7 +23,6 @@ Token Scanner::nextToken()
     state = 0;
     char currentChar;
     std::string content = "";
-    bool isDecimal = false;
     while (true)
     {
         if (isEOF())
@@ -74,6 +73,9 @@ Token Scanner::nextToken()
             return Token(TokenType::IDENTIFIER, content);
 
 
+
+
+//------------------Esse espaço de case lida com os números----------------------
         case 3:
             if (isdigit(currentChar))
             {
@@ -81,19 +83,14 @@ Token Scanner::nextToken()
                 state = 3;
             }
             else if(currentChar == '.'){
-                if(isDecimal == false){
+                
                     content += currentChar;
                     state = 4;
-                }
-                else{
-                    isDecimal = false;
-                    throw std::runtime_error("Malformed number: " + content + currentChar);
-
-                }
+            
             }
             else if (isOperator(currentChar) || isSpace(currentChar))
             {   
-                state = 5;
+                state = 6;
             }
             else
             {
@@ -101,19 +98,32 @@ Token Scanner::nextToken()
             }
             break;
         case 4:
+        // Esse case serve apenas para verificar se após o '.'
             if(isDigit(currentChar)){
-                isDecimal = true;
+                
                 content += currentChar;
-                state = 3;
+                state = 5;
             }
             else{
-                throw std::runtime_error("Malformed number: " + content + currentChar);
+                throw std::runtime_error("Malformed Float Number: " + content + currentChar);
             }
             break;
         case 5:
-            isDecimal = false;
+            if(isDigit(currentChar)){
+                content+=currentChar;
+            }
+            else if(isOperator(currentChar) || isSpace(currentChar)){
+                state = 6;
+            }
+            else{
+                throw std::runtime_error("Malformed Float Number: " + content + currentChar);
+            }
+            break;
+        case 6:
             back();
             return Token(TokenType::NUMBER, content);
+// --------------------------------------------------------------------------------------------------
+
         default:
             break;
         }
