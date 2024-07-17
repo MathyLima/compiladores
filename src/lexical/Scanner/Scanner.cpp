@@ -65,6 +65,10 @@ Token Scanner::nextToken()
                     state=5;
                 }
             }
+            else if(isParentesis(currentChar)){
+                content+=currentChar;
+                state = 8;
+            }
             else
             {
                 throw std::runtime_error(std::string("Invalid character: ") + currentChar);
@@ -94,7 +98,7 @@ Token Scanner::nextToken()
             content += currentChar;
             state = 3;
            }
-           else if(isSpace(currentChar)||isRelationalOperator(currentChar)){
+           else if(isSpace(currentChar)||isRelationalOperator(currentChar) || isParentesis(currentChar)){
             back();
             return Token(TokenType::NUMBER,content);
            }
@@ -112,7 +116,7 @@ Token Scanner::nextToken()
                 content+=currentChar;
                 state=4;
             }
-            else if(isRelationalOperator(currentChar)||isSpace(currentChar)){
+            else if(isRelationalOperator(currentChar)||isSpace(currentChar) || isParentesis(currentChar)){
                 back();
                 return Token(TokenType::FLOAT_NUMBER,content);
             }  
@@ -165,6 +169,23 @@ Token Scanner::nextToken()
             throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
         }
         break;
+        // -----------------------------------------------------------------------------------------------------------
+    // Espaço para parêntesis
+    case 8:
+        if(isRelationalOperator(currentChar)){
+            throw std::runtime_error(std::string("Malformed Parentesis Symbol: ") + content+currentChar);
+        }
+        else{
+            if(content == "("){
+                back();
+                return Token(TokenType::OPEN_PARENTESIS,content);
+            }
+            else if(content == ")"){
+                back();
+                return Token(TokenType::OPEN_PARENTESIS,content);
+
+            }
+        }
 
 default:
         break;
@@ -199,7 +220,10 @@ bool Scanner::isEquationOperator(char c)
 {
     return c == '+' || c == '-' || c == '*' || c == '/';
 }
-
+bool Scanner::isParentesis(char c)
+{
+    return c=='(' || c==')';
+}
 char Scanner::nextChar()
 {
     return sourceBuffer[pos++];
