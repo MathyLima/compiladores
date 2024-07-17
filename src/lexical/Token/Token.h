@@ -8,8 +8,10 @@ enum class TokenType
 {
     IDENTIFIER,
     NUMBER,
+    FLOAT_NUMBER,
     MATH_OPERATOR,
     REL_OPERATOR,
+    EQUAL_OPERATOR,
     ASSIGNMENT,
     LITERAL,
     REL_FUNCTION,
