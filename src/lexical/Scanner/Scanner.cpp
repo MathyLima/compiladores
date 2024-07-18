@@ -69,6 +69,11 @@ Token Scanner::nextToken()
                 content+=currentChar;
                 state = 8;
             }
+            else if (isHashtag(currentChar))
+            {
+                content += currentChar;
+                state = 9;
+            }
             else
             {
                 throw std::runtime_error(std::string("Invalid character: ") + currentChar);
@@ -186,6 +191,17 @@ Token Scanner::nextToken()
 
             }
         }
+        case 9:{
+            
+            while (!isEOF() && currentChar != '\n')
+            {
+                currentChar = nextChar();
+            }
+            
+            state = 0;
+            content = "";
+            back();
+        }
 
 default:
         break;
@@ -223,6 +239,10 @@ bool Scanner::isEquationOperator(char c)
 bool Scanner::isParentesis(char c)
 {
     return c=='(' || c==')';
+}
+bool Scanner::isHashtag(char c)
+{
+    return c == '#';
 }
 char Scanner::nextChar()
 {
