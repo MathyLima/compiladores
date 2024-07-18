@@ -2,8 +2,7 @@
 
 ## Compile:
 
-g++ src/main.cpp src/lexical/Sc
-anner/Scanner.cpp src/lexical/Token/Token.cpp -o compiler
+g++ src/main.cpp src/lexical/Scanner/Scanner.cpp src/lexical/Token/Token.cpp -o compiler
 
 ## Execute
 

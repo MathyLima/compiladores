@@ -8,26 +8,31 @@ enum class TokenType
 {
     IDENTIFIER,
     NUMBER,
+    FLOAT_NUMBER,
     MATH_OPERATOR,
     REL_OPERATOR,
+    EQUAL_OPERATOR,
+    OPEN_PARENTESIS,
+    CLOSE_PARENTESIS,
     ASSIGNMENT,
     LITERAL,
-    NONE
+    REL_FUNCTION,
+    NONE,
 };
 
 class Token
 {
-private:
-    TokenType type;
-    std::string text;
+    private:
+        TokenType type;
+        std::string text;
 
-public:
-    Token(TokenType type = TokenType::NONE, const std::string &text = "");
+    public:
+        Token(TokenType type = TokenType::NONE, const std::string &text = "");
 
-    TokenType getType() const;
-    std::string getText() const;
+        TokenType getType() const;
+        std::string getText() const;
 
-    friend std::ostream &operator<<(std::ostream &os, const Token &token);
-};
+        friend std::ostream &operator<<(std::ostream &os, const Token &token);
+    };
 
 #endif

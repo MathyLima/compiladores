@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <cctype>
+#include <vector>
 
 Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
 {
@@ -23,8 +24,10 @@ Token Scanner::nextToken()
     state = 0;
     char currentChar;
     std::string content = "";
+    
+    
     while (true)
-    {
+    {   
         if (isEOF())
         {
             return Token(TokenType::NONE, "");
@@ -43,10 +46,28 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
-            else if (std::isdigit(currentChar))
+            else if (isdigit(currentChar))
             {
                 content += currentChar;
                 state = 3;
+            }
+            else if(currentChar=='.'){
+                content +=currentChar;
+                state = 4;
+            }
+            else if(isRelationalOperator(currentChar)){
+                if(currentChar == '!'){
+                    content+=currentChar;
+                    state=6;
+                }
+                else{
+                    content+=currentChar;
+                    state=5;
+                }
+            }
+            else if(isParentesis(currentChar)){
+                content+=currentChar;
+                state = 8;
             }
             else
             {
@@ -54,7 +75,7 @@ Token Scanner::nextToken()
             }
             break;
         case 1:
-            if (isLetter(currentChar) || std::isdigit(currentChar))
+            if (isLetter(currentChar) || isdigit(currentChar))
             {
                 content += currentChar;
                 state = 1;
@@ -67,29 +88,118 @@ Token Scanner::nextToken()
         case 2:
             back();
             return Token(TokenType::IDENTIFIER, content);
+
+
+
+
+//------------------Esse espaço de case lida com os números----------------------
         case 3:
-            if (std::isdigit(currentChar))
-            {
-                content += currentChar;
-                state = 3;
-            }
-            else if (isOperator(currentChar) || isSpace(currentChar))
-            {
-                state = 4;
-            }
-            else
-            {
-                throw std::runtime_error("Malformed number: " + content + currentChar);
-            }
-            break;
-        case 4:
+           if(isDigit(currentChar)){
+            content += currentChar;
+            state = 3;
+           }
+           else if(isSpace(currentChar)||isRelationalOperator(currentChar) || isParentesis(currentChar)){
             back();
-            return Token(TokenType::NUMBER, content);
-        default:
+            return Token(TokenType::NUMBER,content);
+           }
+           else if(currentChar=='.'){
+            content+=currentChar;
+            state = 4;
+           }
+           else{
+                throw std::runtime_error(std::string("Malformed Number: ") + content+currentChar);
+           }
+           break;
+        case 4:
+        // Esse case serve apenas para verificar se após o '.'
+            if(isDigit(currentChar)){
+                content+=currentChar;
+                state=4;
+            }
+            else if(isRelationalOperator(currentChar)||isSpace(currentChar) || isParentesis(currentChar)){
+                back();
+                return Token(TokenType::FLOAT_NUMBER,content);
+            }  
+            else{
+                throw std::runtime_error(std::string("Malformed Float Number: ") + content+currentChar);
+            }
+
             break;
+          
+       
+
+// --------------------------------------------------------------------------------------------------
+// Operadores e equações
+     case 5:
+        // Esse case serve para verificar se só há digitos, operadores ou espaço após meu ponto flutuante
+        if(isRelationalOperator(currentChar)&& currentChar == '='){
+            content+=currentChar;
+            state = 7;
         }
+        else if(isSpace(currentChar)||isDigit(currentChar)){
+            back();
+            if(content[0] == '='){
+                return Token(TokenType::EQUAL_OPERATOR,content);
+            }
+            else{
+            return Token(TokenType::REL_OPERATOR,content);
+
+            }
+        }
+        else{
+            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+        }
+        break;
+            
+    case 6:
+        if(isRelationalOperator(currentChar)&& currentChar == '='){
+            content+=currentChar;
+            state = 7;
+        }
+        else{
+            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+        }
+        break;
+    case 7:
+        if(isDigit(currentChar)||isSpace(currentChar)){
+            back();
+            return Token(TokenType::REL_OPERATOR,content);
+        }
+        else{
+            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+        }
+        break;
+        // -----------------------------------------------------------------------------------------------------------
+    // Espaço para parêntesis
+    case 8:
+        if(isRelationalOperator(currentChar)){
+            throw std::runtime_error(std::string("Malformed Parentesis Symbol: ") + content+currentChar);
+        }
+        else{
+            if(content == "("){
+                back();
+                return Token(TokenType::OPEN_PARENTESIS,content);
+            }
+            else if(content == ")"){
+                back();
+                return Token(TokenType::OPEN_PARENTESIS,content);
+
+            }
+        }
+
+default:
+        break;
+    }
+
+
     }
 }
+
+bool Scanner::isDigit(char c){
+    return (c>='0' && c<='9');
+}
+
+
 
 bool Scanner::isLetter(char c)
 {
@@ -101,12 +211,19 @@ bool Scanner::isSpace(char c)
     return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 
-bool Scanner::isOperator(char c)
+bool Scanner::isRelationalOperator(char c)
 {
-    return c == '=' || c == '>' || c == '<' || c == '!' || c == '+' || c == '-' ||
-           c == '*' || c == '/';
+    return c == '=' || c == '>' || c == '<' || c == '!'; 
 }
 
+bool Scanner::isEquationOperator(char c)
+{
+    return c == '+' || c == '-' || c == '*' || c == '/';
+}
+bool Scanner::isParentesis(char c)
+{
+    return c=='(' || c==')';
+}
 char Scanner::nextChar()
 {
     return sourceBuffer[pos++];
