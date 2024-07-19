@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <cctype>
 #include <vector>
+#include <unordered_map>
+
+// std::unordered_map<std::string, std::string>
 
 Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 {
@@ -21,9 +24,16 @@ Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 
 Token Scanner::nextToken()
 {
+    reservedWords = {
+        {"int", "331"},
+        {"else", "425"},
+        {"if", "207"},
+        {"float", "534"},
+        {"print", "557"}};
     state = 0;
     char currentChar;
     std::string content = "";
+    auto existReserved = reservedWords.find(content);
 
     while (true)
     {
@@ -56,11 +66,6 @@ Token Scanner::nextToken()
             {
                 content += currentChar;
                 state = 4;
-            }
-            else if (currentChar == '=')
-            {
-                content = currentChar;
-                state = 10;
             }
             else if (isRelationalOperator(currentChar))
             {
@@ -103,9 +108,10 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
-            else if (currentChar == '=')
+            else if (isParentesis(currentChar))
             {
-                state = 10;
+                back();
+                return Token(TokenType::IDENTIFIER, content);
             }
             else
             {
