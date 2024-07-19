@@ -25,11 +25,11 @@ Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 Token Scanner::nextToken()
 {
     reservedWords = {
-        {"int", "331"},
-        {"else", "425"},
-        {"if", "207"},
-        {"float", "534"},
-        {"print", "557"}};
+        {"int", "int-331"},
+        {"else", "else-425"},
+        {"if", "if-207"},
+        {"float", "float-534"},
+        {"print", "print-557"}};
     state = 0;
     char currentChar;
     std::string content = "";
@@ -42,7 +42,6 @@ Token Scanner::nextToken()
             return Token(TokenType::NONE, "");
         }
         currentChar = nextChar();
-
 
         switch (state)
         {
@@ -120,7 +119,15 @@ Token Scanner::nextToken()
             break;
         case 2:
             back();
-            return Token(TokenType::IDENTIFIER, content);
+            existReserved = reservedWords.find(content);
+            if (existReserved != reservedWords.end())
+            {
+                return Token(TokenType::IDENTIFIER, existReserved->second);
+            }
+            else
+            {
+                return Token(TokenType::IDENTIFIER, content);
+            }
 
             //------------------Esse espaço de case lida com os números----------------------
         case 3:
@@ -162,9 +169,10 @@ Token Scanner::nextToken()
             else if (isRelationalOperator(currentChar) || isSpace(currentChar) || isParentesis(currentChar))
             {
                 back();
-                return Token(TokenType::FLOAT_NUMBER,content);
-            }  
-            else{
+                return Token(TokenType::FLOAT_NUMBER, content);
+            }
+            else
+            {
                 throw std::runtime_error("Malformed Float Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
 
@@ -281,13 +289,14 @@ Token Scanner::nextToken()
             {
                 throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
             }
-        case 11:{
-            
+        case 11:
+        {
+
             while (!isEOF() && currentChar != '\n')
             {
                 currentChar = nextChar();
             }
-            
+
             state = 0;
             content = "";
             back();
@@ -351,7 +360,6 @@ char Scanner::nextChar()
     }
     return c;
 }
-
 
 void Scanner::back()
 {
