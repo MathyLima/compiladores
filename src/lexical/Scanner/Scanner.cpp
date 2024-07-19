@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <cctype>
 #include <vector>
+#include <unordered_map>
+
+// std::unordered_map<std::string, std::string>
 
 Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
 {
@@ -21,9 +24,16 @@ Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
 
 Token Scanner::nextToken()
 {
+    reservedWords = {
+        {"int", "331"},
+        {"else", "425"},
+        {"if", "207"},
+        {"float", "534"},
+        {"print", "557"}};
     state = 0;
     char currentChar;
     std::string content = "";
+    auto existReserved = reservedWords.find(content);
 
     while (true)
     {
@@ -55,11 +65,6 @@ Token Scanner::nextToken()
             {
                 content += currentChar;
                 state = 4;
-            }
-            else if (currentChar == '=')
-            {
-                content = currentChar;
-                state = 10;
             }
             else if (isRelationalOperator(currentChar))
             {
@@ -97,10 +102,6 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
-            else if (currentChar == '=')
-            {
-                state = 10;
-            }
             else
             {
                 state = 2;
@@ -108,6 +109,11 @@ Token Scanner::nextToken()
             break;
         case 2:
             back();
+            existReserved = reservedWords.find(content);
+            if (existReserved != reservedWords.end())
+            {
+                return Token(TokenType::IDENTIFIER, existReserved->second);
+            }
             return Token(TokenType::IDENTIFIER, content);
 
             //------------------Esse espaço de case lida com os números----------------------
