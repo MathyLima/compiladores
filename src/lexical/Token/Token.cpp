@@ -14,6 +14,6 @@ std::string Token::getText() const
 
 std::ostream &operator<<(std::ostream &os, const Token &token)
 {
-    os << "Token [type=" << static_cast<int>(token.type) << ", text=" << token.text << "]";
+    os << "Token: type: " << static_cast<int>(token.type) << ", text: " << token.text << "";
     return os;
 }

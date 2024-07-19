@@ -28,7 +28,9 @@ private:
     bool isSpace(char c);
     bool isRelationalOperator(char c);
     bool isEquationOperator(char c);
+    bool isEquationSinal(char c);
     bool isParentesis(char c);
+    bool isHashtag(char c);
     char nextChar();
     void back();
     bool isEOF();
