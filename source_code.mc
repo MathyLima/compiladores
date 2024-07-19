@@ -1,30 +1,16 @@
-<<<<<<< HEAD
-x soma y
- somas2
-111)d1
-1.22222
-.1111
-11.2222
-111.
-1100>0
-10120<0
-10=10
-_iiihj9_h
-p_6_0_d
-440>=1
-11<=14
-11==11
-12!=10
-11<=0
-=======
-if eu sei entao eu nao sei
-2*4/9 + 8 - 8 = 3
-3 != 7 > 8 <= 8 == 8
-(ola) 
-123.123
-else
+analaura
+098 89
+2 + 8 * 58 - 77 / 66
+= analaura
+8 > 9 < 10 == 88 >= 67 <=77
+( aqui tem algo )
+123.456
 
+if ana 
+else laura
 
->>>>>>> 55ca73102a01971385f9030fc4ac381e3ccd48fd
+# Comentarios
+
+!
 
 
