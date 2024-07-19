@@ -102,6 +102,11 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
+            else if (isParentesis(currentChar))
+            {
+                back();
+                return Token(TokenType::IDENTIFIER, content);
+            }
             else
             {
                 state = 2;
