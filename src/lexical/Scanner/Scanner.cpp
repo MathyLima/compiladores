@@ -4,7 +4,7 @@
 #include <cctype>
 #include <vector>
 
-Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
+Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 {
     std::ifstream file(source);
     if (file.is_open())
@@ -34,6 +34,7 @@ Token Scanner::nextToken()
         }
         currentChar = nextChar();
 
+
         switch (state)
         {
         case 0:
@@ -41,7 +42,7 @@ Token Scanner::nextToken()
             {
                 state = 0;
             }
-            else if (isLetter(currentChar))
+            else if (isLetter(currentChar) || currentChar == '_')
             {
                 content += currentChar;
                 state = 1;
@@ -76,11 +77,11 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Invalid character: ") + currentChar);
+                throw std::runtime_error("You used a forbidden symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + currentChar);
             }
             break;
         case 1:
-            if (isLetter(currentChar) || isdigit(currentChar))
+            if (isLetter(currentChar) || isdigit(currentChar) || currentChar == '_')
             {
                 content += currentChar;
                 state = 1;
@@ -112,7 +113,7 @@ Token Scanner::nextToken()
             state = 4;
            }
            else{
-                throw std::runtime_error(std::string("Malformed Number: ") + content+currentChar);
+               throw std::runtime_error("Malformed Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
            }
            break;
         case 4:
@@ -120,13 +121,14 @@ Token Scanner::nextToken()
             if(isDigit(currentChar)){
                 content+=currentChar;
                 state=4;
+                
             }
             else if(isRelationalOperator(currentChar)||isSpace(currentChar) || isParentesis(currentChar)){
                 back();
                 return Token(TokenType::FLOAT_NUMBER,content);
             }  
             else{
-                throw std::runtime_error(std::string("Malformed Float Number: ") + content+currentChar);
+                throw std::runtime_error("Malformed Float Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
 
             break;
@@ -152,7 +154,7 @@ Token Scanner::nextToken()
             }
         }
         else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+            throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
         }
         break;
             
@@ -162,7 +164,7 @@ Token Scanner::nextToken()
             state = 7;
         }
         else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+            throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
         }
         break;
     case 7:
@@ -171,14 +173,14 @@ Token Scanner::nextToken()
             return Token(TokenType::REL_OPERATOR,content);
         }
         else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
+            throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
         }
         break;
         // -----------------------------------------------------------------------------------------------------------
     // Espaço para parêntesis
     case 8:
         if(isRelationalOperator(currentChar)){
-            throw std::runtime_error(std::string("Malformed Parentesis Symbol: ") + content+currentChar);
+            throw std::runtime_error("Malformed Parentesis Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
         }
         else{
             if(content == "("){
@@ -246,8 +248,19 @@ bool Scanner::isHashtag(char c)
 }
 char Scanner::nextChar()
 {
-    return sourceBuffer[pos++];
+    char c = sourceBuffer[pos++];
+    if (c == '\n')
+    {
+        row++;
+        col = 0;
+    }
+    else
+    {
+        col++;
+    }
+    return c;
 }
+
 
 void Scanner::back()
 {
