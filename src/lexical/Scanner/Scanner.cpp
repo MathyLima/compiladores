@@ -312,10 +312,6 @@ bool Scanner::isParentesis(char c)
     return c == '(' || c == ')';
 }
 
-bool Scanner::isEquationSinal(char c)
-{
-    return c == '-' || c == '+';
-}
 char Scanner::nextChar()
 {
     return sourceBuffer[pos++];

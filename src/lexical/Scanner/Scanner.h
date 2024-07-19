@@ -28,7 +28,6 @@ private:
     bool isSpace(char c);
     bool isRelationalOperator(char c);
     bool isEquationOperator(char c);
-    bool isEquationSinal(char c);
     bool isParentesis(char c);
     char nextChar();
     void back();
