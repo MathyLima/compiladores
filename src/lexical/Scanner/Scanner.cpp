@@ -24,10 +24,9 @@ Token Scanner::nextToken()
     state = 0;
     char currentChar;
     std::string content = "";
-    
-    
+
     while (true)
-    {   
+    {
         if (isEOF())
         {
             return Token(TokenType::NONE, "");
@@ -36,6 +35,7 @@ Token Scanner::nextToken()
 
         switch (state)
         {
+
         case 0:
             if (isSpace(currentChar))
             {
@@ -46,28 +46,45 @@ Token Scanner::nextToken()
                 content += currentChar;
                 state = 1;
             }
-            else if (isdigit(currentChar))
+            else if (isDigit(currentChar))
             {
                 content += currentChar;
                 state = 3;
             }
-            else if(currentChar=='.'){
-                content +=currentChar;
+            else if (currentChar == '.')
+            {
+                content += currentChar;
                 state = 4;
             }
-            else if(isRelationalOperator(currentChar)){
-                if(currentChar == '!'){
-                    content+=currentChar;
-                    state=6;
+            else if (currentChar == '=')
+            {
+                content = currentChar;
+                state = 10;
+            }
+            else if (isRelationalOperator(currentChar))
+            {
+                if (currentChar == '!')
+                {
+                    content += currentChar;
+                    state = 6;
                 }
-                else{
-                    content+=currentChar;
-                    state=5;
+                else
+                {
+                    content += currentChar;
+                    state = 5;
                 }
             }
-            else if(isParentesis(currentChar)){
-                content+=currentChar;
+
+            else if (isParentesis(currentChar))
+            {
+                content += currentChar;
                 state = 8;
+            }
+            else if (isEquationOperator(currentChar))
+            {
+
+                content = currentChar;
+                state = 9;
             }
             else
             {
@@ -75,10 +92,14 @@ Token Scanner::nextToken()
             }
             break;
         case 1:
-            if (isLetter(currentChar) || isdigit(currentChar))
+            if (isLetter(currentChar) || isDigit(currentChar))
             {
                 content += currentChar;
                 state = 1;
+            }
+            else if (currentChar == '=')
+            {
+                state = 10;
             }
             else
             {
@@ -89,117 +110,177 @@ Token Scanner::nextToken()
             back();
             return Token(TokenType::IDENTIFIER, content);
 
-
-
-
-//------------------Esse espaço de case lida com os números----------------------
+            //------------------Esse espaço de case lida com os números----------------------
         case 3:
-           if(isDigit(currentChar)){
-            content += currentChar;
-            state = 3;
-           }
-           else if(isSpace(currentChar)||isRelationalOperator(currentChar) || isParentesis(currentChar)){
-            back();
-            return Token(TokenType::NUMBER,content);
-           }
-           else if(currentChar=='.'){
-            content+=currentChar;
-            state = 4;
-           }
-           else{
-                throw std::runtime_error(std::string("Malformed Number: ") + content+currentChar);
-           }
-           break;
-        case 4:
-        // Esse case serve apenas para verificar se após o '.'
-            if(isDigit(currentChar)){
-                content+=currentChar;
-                state=4;
+            if (isDigit(currentChar))
+            {
+                content += currentChar;
+                state = 3;
             }
-            else if(isRelationalOperator(currentChar)||isSpace(currentChar) || isParentesis(currentChar)){
+
+            else if (isSpace(currentChar) || isRelationalOperator(currentChar) || isParentesis(currentChar))
+            {
                 back();
-                return Token(TokenType::FLOAT_NUMBER,content);
-            }  
-            else{
-                throw std::runtime_error(std::string("Malformed Float Number: ") + content+currentChar);
+                return Token(TokenType::NUMBER, content);
+            }
+            else if (currentChar == '.')
+            {
+                content += currentChar;
+                state = 4;
+            }
+            else if (isEquationOperator(currentChar))
+            {
+                state = 9;
+                back();
+                return Token(TokenType::NUMBER, content);
+            }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Number: ") + content + currentChar);
             }
 
             break;
-          
-       
-
-// --------------------------------------------------------------------------------------------------
-// Operadores e equações
-     case 5:
-        // Esse case serve para verificar se só há digitos, operadores ou espaço após meu ponto flutuante
-        if(isRelationalOperator(currentChar)&& currentChar == '='){
-            content+=currentChar;
-            state = 7;
-        }
-        else if(isSpace(currentChar)||isDigit(currentChar)){
-            back();
-            if(content[0] == '='){
-                return Token(TokenType::EQUAL_OPERATOR,content);
+        case 4:
+            // Esse case serve apenas para verificar se após o '.'
+            if (isDigit(currentChar))
+            {
+                content += currentChar;
+                state = 4;
             }
-            else{
-            return Token(TokenType::REL_OPERATOR,content);
-
-            }
-        }
-        else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
-        }
-        break;
-            
-    case 6:
-        if(isRelationalOperator(currentChar)&& currentChar == '='){
-            content+=currentChar;
-            state = 7;
-        }
-        else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
-        }
-        break;
-    case 7:
-        if(isDigit(currentChar)||isSpace(currentChar)){
-            back();
-            return Token(TokenType::REL_OPERATOR,content);
-        }
-        else{
-            throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content+currentChar);
-        }
-        break;
-        // -----------------------------------------------------------------------------------------------------------
-    // Espaço para parêntesis
-    case 8:
-        if(isRelationalOperator(currentChar)){
-            throw std::runtime_error(std::string("Malformed Parentesis Symbol: ") + content+currentChar);
-        }
-        else{
-            if(content == "("){
+            else if (isRelationalOperator(currentChar) || isSpace(currentChar) || isParentesis(currentChar))
+            {
                 back();
-                return Token(TokenType::OPEN_PARENTESIS,content);
+                return Token(TokenType::FLOAT_NUMBER, content);
             }
-            else if(content == ")"){
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Float Number: ") + content + currentChar);
+            }
+
+            break;
+
+            // --------------------------------------------------------------------------------------------------
+            // Operadores e equações
+        case 5:
+            // Esse case serve para verificar se só há digitos, operadores ou espaço após meu ponto flutuante
+            if (isRelationalOperator(currentChar) && currentChar == '=')
+            {
+                content += currentChar;
+                state = 7;
+            }
+            else if (isSpace(currentChar) || isDigit(currentChar))
+            {
                 back();
-                return Token(TokenType::OPEN_PARENTESIS,content);
-
+                if (content[0] == '=')
+                {
+                    return Token(TokenType::EQUAL_OPERATOR, content);
+                }
+                else
+                {
+                    return Token(TokenType::REL_OPERATOR, content);
+                }
             }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+            }
+            break;
+
+        case 6:
+            if (isRelationalOperator(currentChar) && currentChar == '=')
+            {
+                content += currentChar;
+                state = 7;
+            }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+            }
+            break;
+        case 7:
+            if (isDigit(currentChar) || isSpace(currentChar))
+            {
+                back();
+                return Token(TokenType::REL_OPERATOR, content);
+            }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+            }
+            break;
+            // -----------------------------------------------------------------------------------------------------------
+        // Espaço para parêntesis
+        case 8:
+            if (isRelationalOperator(currentChar))
+            {
+                throw std::runtime_error(std::string("Malformed Parentesis Symbol: ") + content + currentChar);
+            }
+            else
+            {
+                if (content == "(")
+                {
+                    back();
+                    return Token(TokenType::OPEN_PARENTESIS, content);
+                }
+                else if (content == ")")
+                {
+                    back();
+                    return Token(TokenType::OPEN_PARENTESIS, content);
+                }
+            }
+        // Reconhece os operandos + - * /
+        case 9:
+
+            if (isDigit(currentChar))
+            {
+                state = 3;
+                back();
+                return Token(TokenType::MATH_OPERATOR, content);
+            }
+            else if (isSpace(currentChar))
+            {
+                state = 9;
+                return Token(TokenType::MATH_OPERATOR, content);
+            }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
+            }
+            break;
+
+        case 10:
+            if (isSpace(currentChar))
+            {
+                state = 0;
+                return Token(TokenType::EQUAL_OPERATOR, content);
+            }
+            else if (isDigit(currentChar))
+            {
+                back();
+                state = 3;
+                return Token(TokenType::EQUAL_OPERATOR, content);
+            }
+            else if (isLetter(currentChar))
+            {
+                back();
+                state = 1;
+                return Token(TokenType::EQUAL_OPERATOR, content);
+            }
+            else
+            {
+                throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
+            }
+
+        default:
+            break;
         }
-
-default:
-        break;
-    }
-
-
     }
 }
 
-bool Scanner::isDigit(char c){
-    return (c>='0' && c<='9');
+bool Scanner::isDigit(char c)
+{
+    return (c >= '0' && c <= '9');
 }
-
-
 
 bool Scanner::isLetter(char c)
 {
@@ -213,7 +294,7 @@ bool Scanner::isSpace(char c)
 
 bool Scanner::isRelationalOperator(char c)
 {
-    return c == '=' || c == '>' || c == '<' || c == '!'; 
+    return c == '=' || c == '>' || c == '<' || c == '!';
 }
 
 bool Scanner::isEquationOperator(char c)
@@ -222,7 +303,12 @@ bool Scanner::isEquationOperator(char c)
 }
 bool Scanner::isParentesis(char c)
 {
-    return c=='(' || c==')';
+    return c == '(' || c == ')';
+}
+
+bool Scanner::isEquationSinal(char c)
+{
+    return c == '-' || c == '+';
 }
 char Scanner::nextChar()
 {
