@@ -90,7 +90,7 @@ Token Scanner::nextToken()
             else if (isHashtag(currentChar))
             {
                 content += currentChar;
-                state = 9;
+                state = 11;
             }
             else
             {
@@ -98,7 +98,7 @@ Token Scanner::nextToken()
             }
             break;
         case 1:
-            if (isLetter(currentChar) || isDigit(currentChar))
+            if (isLetter(currentChar) || isDigit(currentChar) || currentChar == '_')
             {
                 content += currentChar;
                 state = 1;
@@ -142,7 +142,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Number: ") + content + currentChar);
+                throw std::runtime_error("Malformed Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
 
             break;
@@ -187,7 +187,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
             break;
 
@@ -199,7 +199,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
             break;
         case 7:
@@ -210,7 +210,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Relational Symbol: ") + content + currentChar);
+                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
             break;
             // -----------------------------------------------------------------------------------------------------------
@@ -275,7 +275,7 @@ Token Scanner::nextToken()
             {
                 throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
             }
-        case 9:{
+        case 11:{
             
             while (!isEOF() && currentChar != '\n')
             {
@@ -326,10 +326,7 @@ bool Scanner::isEquationSinal(char c)
 {
     return c == '-' || c == '+';
 }
-bool Scanner::isHashtag(char c)
-{
-    return c == '#';
-}
+
 bool Scanner::isHashtag(char c)
 {
     return c == '#';
