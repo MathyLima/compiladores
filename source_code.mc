@@ -5,7 +5,7 @@ analaura
 8 > 9 < 10 == 88 >= 67 <=77
 ( aqui tem algo )
 123.456
-
+<dd
 if ana 
 else laura
 print Comentarios

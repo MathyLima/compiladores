@@ -202,8 +202,9 @@ Token Scanner::nextToken()
                 }
             }
             else
-            {
-                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
+            {   
+                back();
+                return Token(TokenType::LOGICAL_OPERATOR, content);
             }
             break;
 
