@@ -7,7 +7,7 @@
 
 // std::unordered_map<std::string, std::string>
 
-Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
+Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 {
     std::ifstream file(source);
     if (file.is_open())
@@ -155,9 +155,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                back();
-                return Token(TokenType::NUMBER, content);
-
+                throw std::runtime_error("Malformed Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
 
             break;
@@ -215,13 +213,13 @@ Token Scanner::nextToken()
             }
             else
             {
-                return Token(TokenType::LOGICAL_OPERATOR, content);
-
+                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
             }
             break;
         case 7:
             if (isDigit(currentChar) || isSpace(currentChar))
             {
+                back();
                 return Token(TokenType::REL_OPERATOR, content);
             }
             else
@@ -246,7 +244,7 @@ Token Scanner::nextToken()
                 else if (content == ")")
                 {
                     back();
-                    return Token(TokenType::CLOSE_PARENTESIS, content);
+                    return Token(TokenType::OPEN_PARENTESIS, content);
                 }
             }
         // Reconhece os operandos + - * /

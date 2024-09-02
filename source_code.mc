@@ -1,17 +1,16 @@
-x soma y
- (soma2)
-1111
-1.22222
-.1111s
-11.2222
-111.22
-1100>0
-10120<0
-10=10
-440>=1
-11 <= 14
-11 == (11)
-12!=10
-11<=0
+analaura
+098 89
+2 + 8 * 58 - 77 / 66
+= analaura
+8 > 9 < 10 == 88 >= 67 <=77
+( aqui tem algo )
+123.456
+
+if ana 
+else laura
+print Comentarios
+float 5.99
+# Comentarios
+
 
 
