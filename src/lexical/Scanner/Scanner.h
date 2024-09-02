@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
+
 #include "../Token/Token.h"
 
 class Scanner
@@ -13,6 +15,7 @@ private:
     int pos;
     int row;
     int col;
+    std::unordered_map<std::string, std::string> reservedWords;
 
 public:
     Scanner(const std::string &source);
@@ -25,7 +28,9 @@ private:
     bool isSpace(char c);
     bool isRelationalOperator(char c);
     bool isEquationOperator(char c);
+    bool isEquationSinal(char c);
     bool isParentesis(char c);
+    bool isHashtag(char c);
     char nextChar();
     void back();
     bool isEOF();
