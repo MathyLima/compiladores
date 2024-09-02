@@ -7,7 +7,7 @@
 
 // std::unordered_map<std::string, std::string>
 
-Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
+Scanner::Scanner(const std::string &source) : pos(0), row(1), col(0)
 {
     std::ifstream file(source);
     if (file.is_open())
@@ -126,6 +126,7 @@ Token Scanner::nextToken()
             }
             else
             {
+                back();
                 return Token(TokenType::IDENTIFIER, content);
             }
 
@@ -364,6 +365,20 @@ char Scanner::nextChar()
 void Scanner::back()
 {
     pos--;
+
+    // Verifica se o caractere anterior era uma nova linha
+    if (sourceBuffer[pos] == '\n') {
+        row--;
+        // Recalcula a posição da coluna para o final da linha anterior
+        col = 0;
+        size_t tempPos = pos - 1;
+        while (tempPos > 0 && sourceBuffer[tempPos] != '\n') {
+            col++;
+            tempPos--;
+        }
+    } else {
+        col--;
+    }
 }
 
 bool Scanner::isEOF()

@@ -1,7 +1,7 @@
 analaura
 098 89
 2 + 8 * 58 - 77 / 66
-= analaura
+= anala$ura
 8 > 9 < 10 == 88 >= 67 <=77
 ( aqui tem algo )
 123.456
