@@ -7,7 +7,7 @@
 
 // std::unordered_map<std::string, std::string>
 
-Scanner::Scanner(const std::string &source) : pos(0), row(0), col(0)
+Scanner::Scanner(const std::string &source) : pos(0), row(-1), col(0)
 {
     std::ifstream file(source);
     if (file.is_open())
@@ -175,7 +175,8 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error("Malformed Float Number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
+                back();
+                return Token(TokenType::FLOAT_NUMBER, content);    
             }
 
             break;
@@ -221,14 +222,8 @@ Token Scanner::nextToken()
             }
             break;
         case 7:
-            if (isDigit(currentChar) || isSpace(currentChar))
-            {
-                return Token(TokenType::REL_OPERATOR, content);
-            }
-            else
-            {
-                throw std::runtime_error("Malformed Relational Symbol at row " + std::to_string(row) + ", col " + std::to_string(col) + ": " + content + currentChar);
-            }
+            return Token(TokenType::REL_OPERATOR, content);
+
             break;
             // -----------------------------------------------------------------------------------------------------------
         // Espaço para parêntesis
@@ -266,7 +261,8 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
+                back();
+                return Token(TokenType::MATH_OPERATOR, content);
             }
             break;
 
@@ -290,7 +286,8 @@ Token Scanner::nextToken()
             }
             else
             {
-                throw std::runtime_error(std::string("Malformed Operator: ") + content + currentChar);
+                back();
+                return Token(TokenType::EQUAL_OPERATOR, content);          
             }
         case 11:
         {
