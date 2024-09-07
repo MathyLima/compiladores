@@ -23,7 +23,6 @@ public:
 
 private:
     bool isDigit(char c);
-    bool isFloatPoint(char c);
     bool isLetter(char c);
     bool isSpace(char c);
     bool isRelationalOperator(char c);
