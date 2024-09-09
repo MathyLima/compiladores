@@ -162,6 +162,10 @@ Token Scanner::nextToken()
                 content += currentChar;  // Expoente sem sinal, processa diretamente
                 state = 6;  // Vai para o estado que processa os dígitos do expoente
             } else {
+                if(isDigit(content.back())){
+                    back();
+                    return Token(TokenType::FLOAT_NUMBER, content);  // Retorna número flutuante com expoente
+                }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
             }
             break;
