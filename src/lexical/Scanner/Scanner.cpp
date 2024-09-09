@@ -155,10 +155,7 @@ Token Scanner::nextToken()
             break;
 
         case 5:  // Parte exponencial
-            if (currentChar == '+' || currentChar == '-') {
-                content += currentChar;  // Aceita sinal no expoente
-                state = 6;  // Espera dígitos do expoente
-            } else if (isDigit(currentChar)) {
+            if (isDigit(currentChar)|| currentChar == '+' || currentChar == '-' ) {
                 content += currentChar;  // Expoente sem sinal, processa diretamente
                 state = 6;  // Vai para o estado que processa os dígitos do expoente
             } else {
