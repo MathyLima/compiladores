@@ -33,7 +33,7 @@ class TabelaSimbolos{
         bool contains(const std::string &name){
             return simbolos.find(name)!=simbolos.end();
         }
-}
+};
 
 class AnalisadorSemantico{
     private:
@@ -65,7 +65,7 @@ class AnalisadorSemantico{
         }
 
         //verificar se a variavel ja foi declarada dentro ou fora do escopo
-        Tipo checkVariavel(const std::string &nome,Tipo tipo){
+        Tipo checkVariavel(const std::string &nome){
             std::stack<TabelaSimbolos> tempStack = scopeStack;
 
             while(!tempStack.empty()){
@@ -79,6 +79,9 @@ class AnalisadorSemantico{
         }
 
         void checkTipoVariavel(const std::string &nome,Tipo expctType){
-            Tipo
+            Tipo tipoVar = checkVariavel(nome);
+            if(tipoVar!= expctType){
+                throw std::runtime_error("Erro: Tipos incompatíveis na atribuição para a variável: " + nome);
+            }
         }
-}
+};  
