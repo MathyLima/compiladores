@@ -78,10 +78,38 @@ class AnalisadorSemantico{
             throw std::runtime_error("Erro: Variável não declarada: "+nome);
         }
 
-        void checkTipoVariavel(const std::string &nome,Tipo expctType){
-            Tipo tipoVar = checkVariavel(nome);
-            if(tipoVar!= expctType){
-                throw std::runtime_error("Erro: Tipos incompatíveis na atribuição para a variável: " + nome);
+        // Função para verificar atribuições
+        void checkAtribuicao(const std::string &nome, Tipo valorTipo) {
+            Tipo varTipo = checkVariavel(nome);
+            if (varTipo != valorTipo) {
+                throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
+                                         "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
+                                         ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
+            } else {
+                std::cout << "Atribuição válida para a variável '" << nome << "'\n";
+            }
+        }
+
+        // Função para verificar operações aritméticas
+        Tipo checkOpsAritmeticas(Tipo tipo1, Tipo tipo2) {
+            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT) return Tipo::INT;
+            if (tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT) return Tipo::FLOAT;
+            if ((tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT) || (tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT)) {
+                return Tipo::FLOAT;  // Conversão implícita
+            }
+
+            throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
+                                     std::to_string(static_cast<int>(tipo1)) + " e " +
+                                     std::to_string(static_cast<int>(tipo2)));
+        }
+
+        // Função para verificar operações relacionais
+        void checkOpsRelacionais(Tipo tipo1, Tipo tipo2) {
+            if ((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) &&
+                (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT)) {
+                std::cout << "Operação relacional válida entre os tipos\n";
+            } else {
+                throw std::runtime_error("Erro: Operações relacionais só podem ser feitas entre tipos numéricos");
             }
         }
 };  
