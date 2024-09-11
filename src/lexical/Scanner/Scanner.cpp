@@ -23,20 +23,20 @@ Scanner::Scanner(const std::string &source) : pos(0), row(1), col(0)
 Token Scanner::nextToken()
 {
     reservedWords = {
-        {"program", "program-101"},
-        {"var", "var-102"},
-        {"integer", "integer-103"},
-        {"real", "real-104"},
-        {"boolean", "boolean-105"},
-        {"procedure", "procedure-106"},
-        {"begin", "begin-107"},
-        {"end", "end-108"},
-        {"if", "if-109"},
-        {"then", "then-110"},
-        {"else", "else-111"},
-        {"while", "while-112"},
-        {"do", "do-113"},
-        {"not", "not-114"}};
+        {"program", "program"},
+        {"var", "var"},
+        {"integer", "integer"},
+        {"real", "real"},
+        {"boolean", "boolean"},
+        {"procedure", "procedure"},
+        {"begin", "begin"},
+        {"end", "end"},
+        {"if", "if"},
+        {"then", "then"},
+        {"else", "else"},
+        {"while", "while"},
+        {"do", "do"},
+        {"not", "not"}};
 
     state = 0;
     char currentChar;
@@ -47,7 +47,8 @@ Token Scanner::nextToken()
     {
         if (isEOF())
         {
-            return Token(TokenType::NONE, "");
+            currentToken = Token(TokenType::NONE, "");
+            return currentToken;
         }
         currentChar = nextChar();
 
@@ -71,18 +72,21 @@ Token Scanner::nextToken()
             else if (isRelationalOperator(currentChar))
             {
                 content += currentChar;
-                state = 7;  // Transição para operadores relacionais
+                state = 7; // Transição para operadores relacionais
             }
             else if (isDelimiter(currentChar))
             {
-                content+=currentChar;
-                if (currentChar ==':'){
+                content += currentChar;
+                if (currentChar == ':')
+                {
                     state = 13;
                 }
                 else if (currentChar == '.')
                 {
                     state = 14;
-                }else{
+                }
+                else
+                {
                     state = 10;
                 }
             }
@@ -103,131 +107,180 @@ Token Scanner::nextToken()
             break;
 
         case 1:
-            if (isLetter(currentChar) || isDigit(currentChar) || currentChar=='_')
+            if (isLetter(currentChar) || isDigit(currentChar) || currentChar == '_')
             {
+                // std::cout << "Lendo caractere: " << currentChar << " (conteúdo atual: " << content << ")" << std::endl;
                 content += currentChar;
                 state = 1;
             }
             else
             {
+                // std::cout << "Mudando para o estado 2. Conteúdo final do identificador: " << content << std::endl;
+                // std::cout << "\nEsse eh meu currentChar: " << currentChar << std::endl;
+                back();
+                back();
+                currentChar = nextChar();
+                // std::cout << "\nApliquei dois back e esse eh meu currentChar: " << currentChar << std::endl;
                 state = 2;
             }
             break;
 
         case 2:
-            back();
             existReserved = reservedWords.find(content);
             if (existReserved != reservedWords.end())
             {
-                return Token(TokenType::KEYWORD, existReserved->second);
+                currentToken = Token(TokenType::KEYWORD, existReserved->second);
             }
             else if (content == "AND" || content == "and")
             {
-                return Token(TokenType::MULT_OPERATOR,content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content);
             }
-            else if(content == "OR" || content == "or"){
-                return Token(TokenType::ADD_OPERATOR,content);
-            }       
+            else if (content == "OR" || content == "or")
+            {
+                currentToken = Token(TokenType::ADD_OPERATOR, content);
+            }
             else
             {
-                return Token(TokenType::IDENTIFIER, content);
+                currentToken = Token(TokenType::IDENTIFIER, content);
             }
+            
+            //Aqui, o currentChar precisa ser igual a currentChar -1 posição. Como posso fazer isso com o que tem implementado aqui nesse aqruivo chat?
+            back();
+            return currentToken;
 
-        case 3:  // Parte inteira do número
-            if (isDigit(currentChar)) {
+        case 3: // Parte inteira do número
+            if (isDigit(currentChar))
+            {
                 content += currentChar;
-            } else if (currentChar == '.') {
+            }
+            else if (currentChar == '.')
+            {
                 content += currentChar;
-                state = 4;  // Transição para processar a parte fracionária
-            } else {
+                state = 4; // Transição para processar a parte fracionária
+            }
+            else
+            {
                 back();
-                return Token(TokenType::NUMBER, content);  // Número inteiro
+                currentToken = Token(TokenType::NUMBER, content);
+                return currentToken; // Número inteiro
             }
             break;
 
-        case 4:  // Parte fracionária ou delimitador
-            if (isDigit(currentChar)||currentChar == 'E' || currentChar == 'e') {
-                content += currentChar;  // Continua processando a parte fracionária
-                state = 5;  // Transição para processar a parte exponencial
-            } else {
+        case 4: // Parte fracionária ou delimitador
+            if (isDigit(currentChar) || currentChar == 'E' || currentChar == 'e')
+            {
+                content += currentChar; // Continua processando a parte fracionária
+                state = 5;              // Transição para processar a parte exponencial
+            }
+            else
+            {
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
             }
             break;
 
-        case 5:  // Parte exponencial
-            if (isDigit(currentChar)|| currentChar == '+' || currentChar == '-' ) {
-                content += currentChar;  // Expoente sem sinal, processa diretamente
-                state = 6;  // Vai para o estado que processa os dígitos do expoente
-            } else {
-                if(isDigit(content.back())){
+        case 5: // Parte exponencial
+            if (isDigit(currentChar) || currentChar == '+' || currentChar == '-')
+            {
+                content += currentChar; // Expoente sem sinal, processa diretamente
+                state = 6;              // Vai para o estado que processa os dígitos do expoente
+            }
+            else
+            {
+                if (isDigit(content.back()))
+                {
                     back();
-                    return Token(TokenType::FLOAT_NUMBER, content);  // Retorna número flutuante com expoente
+                    currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                    return currentToken; // Retorna número flutuante com expoente
                 }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
             }
             break;
 
-        case 6:  // Processa dígitos do expoente
-            if (isDigit(currentChar)) {
-                content += currentChar;  // Continua processando os dígitos do expoente
-            } else {
+        case 6: // Processa dígitos do expoente
+            if (isDigit(currentChar))
+            {
+                content += currentChar; // Continua processando os dígitos do expoente
+            }
+            else
+            {
                 back();
-                return Token(TokenType::FLOAT_NUMBER, content);  // Retorna número flutuante com expoente
+                currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                return currentToken; // Retorna número flutuante com expoente
             }
             break;
         case 7:
-            if (currentChar == '=') {
+            if (currentChar == '=')
+            {
                 content += currentChar;
-                state = 9;  // Transição para verificar operador relacional com '='
+                state = 9; // Transição para verificar operador relacional com '='
             }
-            else if(content.back() == '<' && currentChar == '>'){
+            else if (content.back() == '<' && currentChar == '>')
+            {
                 content += currentChar;
-                return Token(TokenType::REL_OPERATOR,content);
+                currentToken = Token(TokenType::REL_OPERATOR, content);
+                return currentToken;
             }
-            else if (isSpace(currentChar) || isDigit(currentChar)) {
+            else if (isSpace(currentChar) || isDigit(currentChar))
+            {
                 back();
-                return Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
+                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
+                return currentToken;
             }
-            else {
+            else
+            {
                 back();
-                return Token(TokenType::LOGICAL_OPERATOR, content);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
+                return currentToken;
             }
             break;
 
         case 8:
-              if (isRelationalOperator(currentChar) && currentChar == '=')
+            if (isRelationalOperator(currentChar) && currentChar == '=')
             {
                 content += currentChar;
                 state = 9;
             }
             else
             {
-                return Token(TokenType::LOGICAL_OPERATOR, content);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
+                return currentToken;
             }
             break;
         case 9:
-        if(currentChar == '='){
+            if (currentChar == '=')
+            {
                 back();
             }
-            return Token(TokenType::REL_OPERATOR, content);
+            currentToken = Token(TokenType::REL_OPERATOR, content);
+            return currentToken;
 
             break;
         case 10:
+            if (currentChar == ';')
+            {
+                currentToken = Token(TokenType::DELIMITER, content);
+                return currentToken;
+            }
             if (isRelationalOperator(currentChar))
             {
                 back();
-
             }
-                return Token(TokenType::DELIMITER, content);
+            currentToken = Token(TokenType::DELIMITER, content);
+            return currentToken;
             break;
 
         case 11:
-            if(content.back() == '+' || content.back() == '-' ){
+            if (content.back() == '+' || content.back() == '-')
+            {
                 back();
-                return Token(TokenType::ADD_OPERATOR,content);
-            }else{
+                currentToken = Token(TokenType::ADD_OPERATOR, content);
+                return currentToken;
+            }
+            else
+            {
                 back();
-                return Token(TokenType::MULT_OPERATOR,content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content);
+                return currentToken;
             }
             break;
 
@@ -240,25 +293,39 @@ Token Scanner::nextToken()
             content = "";
             break;
         case 13:
-            if(currentChar == '='){
-                content+=currentChar;
-                return Token(TokenType::ASSIGNMENT, content);
-            }else{
+            if (currentChar == '=')
+            {
+                content += currentChar;
+                currentToken = Token(TokenType::ASSIGNMENT, content);
+                return currentToken;
+            }
+            else
+            {
                 back();
-                return Token(TokenType::DELIMITER,content);
+                currentToken = Token(TokenType::DELIMITER, content);
+                return currentToken;
             }
         case 14:
-            if(isDigit(currentChar) || currentChar =='E' || currentChar == 'e'){
+            if (isDigit(currentChar) || currentChar == 'E' || currentChar == 'e')
+            {
                 content += currentChar;
                 state = 4;
-            }else{
+            }
+            else
+            {
                 back();
-                return Token(TokenType::DELIMITER,content);
+                currentToken = Token(TokenType::DELIMITER, content);
+                return currentToken;
             }
         default:
             break;
         }
     }
+}
+
+Token Scanner::getCurrentToken()
+{
+    return currentToken; // Apenas retorna o token atual sem avançar
 }
 
 bool Scanner::isDigit(char c)
@@ -283,7 +350,7 @@ bool Scanner::isRelationalOperator(char c)
 
 bool Scanner::isEquationOperator(char c)
 {
-    return  c == '+' || c == '-' ||  c == '*' || c == '/';
+    return c == '+' || c == '-' || c == '*' || c == '/';
 }
 
 bool Scanner::isDelimiter(char c)
@@ -320,15 +387,19 @@ void Scanner::back()
 {
     pos--;
 
-    if (sourceBuffer[pos] == '\n') {
+    if (sourceBuffer[pos] == '\n')
+    {
         row--;
         col = 0;
         size_t tempPos = pos - 1;
-        while (tempPos > 0 && sourceBuffer[tempPos] != '\n') {
+        while (tempPos > 0 && sourceBuffer[tempPos] != '\n')
+        {
             col++;
             tempPos--;
         }
-    } else {
+    }
+    else
+    {
         col--;
     }
 }

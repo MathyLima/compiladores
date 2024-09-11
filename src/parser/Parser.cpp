@@ -6,19 +6,29 @@
 
 Parser::Parser(Scanner &scanner) : scanner(scanner)
 {
-    currentToken = scanner.nextToken();
+   currentToken = scanner.getCurrentToken();
 }
 
 void Parser::parseProgram()
 {
-    if (currentToken.getType() == TokenType::KEYWORD && currentToken.getText() == "program")
+    std::cout << "Entering parseProgram" << std::endl;
+    
+    std::cout << "First token in parseProgram: " << currentToken.getText() << std::endl;
+
+    // Consome o token "program"
+    if (currentToken.getText() == "program")
     {
         match("program");
         match(TokenType::IDENTIFIER);
+        // Consome o token ";"
         match(";");
+
+        // Agora, prossegue para as outras partes do programa
         parseDeclarations();
         parseSubprogramDeclarations();
         parseCompoundCommand();
+
+        // Verifica se o programa termina com "."
         match(".");
     }
     else
@@ -29,9 +39,13 @@ void Parser::parseProgram()
 
 void Parser::match(const std::string &expected)
 {
-    if (currentToken.getText() == expected)
+    std::cout << "Matching: |" << expected << "| with |" << currentToken.getText() << "|" << std::endl;
+
+    if (currentToken.getText().compare(expected) == 0)
     {
+        std::cout << "Token matched successfully!" << std::endl;
         currentToken = scanner.nextToken();
+        std::cout << "Next Token Text: " << currentToken.getText() << std::endl;
     }
     else
     {
@@ -41,15 +55,70 @@ void Parser::match(const std::string &expected)
 
 void Parser::match(TokenType expectedType)
 {
+    std::cout << "Expected Token Type: " << static_cast<int>(expectedType) << std::endl;
+    std::cout << "Current Token Type: " << static_cast<int>(currentToken.getType()) << std::endl;
+    std::cout << "Current Token Text: " << currentToken.getText() << std::endl;
+
     if (currentToken.getType() == expectedType)
     {
+        std::cout << "Token matched successfully!" << std::endl;
         currentToken = scanner.nextToken();
+        std::cout << "Next Token Text: " << currentToken.getText() << std::endl;
+        std::cout << "Next Token Type: " << static_cast<int>(currentToken.getType()) << std::endl;
     }
     else
     {
         error("Unexpected token type");
     }
 }
+
+std::string cleanString(const std::string &str)
+{
+    std::string result;
+    for (char c : str)
+    {
+        if (!isspace(c))
+        {
+            result += c;
+        }
+    }
+    return result;
+}
+
+// void Parser::match(const std::string &expected)
+// {
+//     std::cout << "Matching: |" << expected << "| with |" << currentToken.getText() << "|" << std::endl;
+
+//     if (currentToken.getText().compare(expected) == 0)
+//     {
+//         std::cout << "Token matched successfully!" << std::endl;
+//         currentToken = scanner.nextToken();
+//         std::cout << "Next Token Text: " << currentToken.getText() << std::endl;
+//     }
+//     else
+//     {
+//         error("Expected '" + expected + "'");
+//     }
+// }
+
+// void Parser::match(TokenType expectedType)
+// {
+//     std::cout << "Expected Token Type: " << static_cast<int>(expectedType) << std::endl;
+//     std::cout << "Current Token Type: " << static_cast<int>(currentToken.getType()) << std::endl;
+//     std::cout << "Current Token Text: " << currentToken.getText() << std::endl;
+
+//     if (currentToken.getType() == expectedType)
+//     {
+//         std::cout << "Token matched successfully!" << std::endl;
+//         currentToken = scanner.nextToken();
+//         std::cout << "Next Token Text: " << currentToken.getText() << std::endl;
+//         std::cout << "Next Token Type: " << static_cast<int>(currentToken.getType()) << std::endl;
+//     }
+//     else
+//     {
+//         error("Unexpected token type");
+//     }
+// }
 
 void Parser::parseDeclarations()
 {
