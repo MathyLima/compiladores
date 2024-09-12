@@ -231,21 +231,20 @@ public:
     }
 
 
-        void processarToken(const Token &token){
-            switch (token.getType())
-            {
-            case TokenType::IDENTIFIER:{
-                Tipo tipo = checkVariavel(token.getText());
-                    if(tipo == Tipo::UNDEFINED){
-                        throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
-                    }
-                }
-                break;
-                default:
-                    break;
+    void processarToken(const Token &token){
+        switch (token.getType())
+        {
+        case TokenType::IDENTIFIER:{
+            Tipo tipo = checkVariavel(token.getText());
+                if(tipo == Tipo::UNDEFINED){
+                    throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
                 }
             }
+            break;
+            default:
+                break;
+            }
+        }
             
 
-        };
-
+    };
