@@ -150,7 +150,7 @@ public:
             tempStack.pop();
         }
 
-        throw std::runtime_error("Erro: Variável não declarada: " + nome);
+        throw std::runtime_error("Erro: Variável '" + nome + "' não declarada: ");
     }
 
     void declararFuncao(const std::string &nome, Tipo tipoRetorno, std::vector<Tipo> &parametros) {
@@ -173,25 +173,25 @@ public:
         if (varTipo != valorTipo) {
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
                                      "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                     ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
-        } else {
-            std::cout << "Atribuição válida para a variável '" << nome << "'\n";
+                                     ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
     }
 
 
         // Função para verificar operações aritméticas
-        Tipo checkOpsAritmeticas(Tipo tipo1, Tipo tipo2) {
-            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT) return Tipo::INT;
-            if (tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT) return Tipo::FLOAT;
-            if ((tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT) || (tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT)) {
-                return Tipo::FLOAT;  // Conversão implícita
-            }
-
+    bool checkOpsAritmeticas(Tipo tipo1, Tipo tipo2, Tipo valorTipo) {
+        if (tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: INT || 
+            tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
+            tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT ||
+            tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
+            tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT)
+            return true;
+        else{
             throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
                                      std::to_string(static_cast<int>(tipo1)) + " e " +
                                      std::to_string(static_cast<int>(tipo2)));
         }
+    }
 
         // Função para verificar operações relacionais
         void checkOpsRelacionais(Tipo tipo1, Tipo tipo2) {
