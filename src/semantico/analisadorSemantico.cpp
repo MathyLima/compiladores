@@ -177,10 +177,12 @@ public:
         }
     }
 
-
-        // Função para verificar operações aritméticas
-    bool checkOpsAritmeticas(Tipo tipo1, Tipo tipo2, Tipo valorTipo) {
-        if (tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: INT || 
+        // Função para verificar operações relacionais e lógicas
+    bool checkOperacoes(Tipo tipo1, Tipo tipo2, Tipo valorTipo, const std::string &operador) {
+    
+        // Operações aritméticas numéricas
+        if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
+            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: INT || 
             tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
             tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT ||
             tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
@@ -188,27 +190,13 @@ public:
             return true;
         else{
             throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
-                                     std::to_string(static_cast<int>(tipo1)) + " e " +
-                                     std::to_string(static_cast<int>(tipo2)));
-        }
-    }
-
-        // Função para verificar operações relacionais
-    bool checkOpsRelacionais(Tipo tipo1, Tipo tipo2, const std::string &operador) {
-    
-        // Operações aritméticas numéricas
-        if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
-            if ((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) && (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT)) {
-                return true;
-            } else {
-                throw std::runtime_error("Erro: Operação aritmética inválida entre tipos " +
-                                        std::to_string(static_cast<int>(tipo1)) + " e " +
-                                        std::to_string(static_cast<int>(tipo2)));
+                                    std::to_string(static_cast<int>(tipo1)) + " e " +
+                                    std::to_string(static_cast<int>(tipo2)));
             }
         }
 
         // Operadores lógicos booleanos
-        if (operador == "&&" || operador == "||") {
+        if (operador == "&&" || operador == "||" || operador == "and" || operador == "or") {
             if (tipo1 == Tipo::BOOL && tipo2 == Tipo::BOOL) {
                 return true;
             } else {
@@ -218,7 +206,7 @@ public:
             }
         }
 
-        // Operadores de comparação (==, !=, <, >, <=, >=) - válidos para tipos iguais
+        // Operadores de comparação (==, !=, <, >, <=, >=)
         if (operador == "==" || operador == "!=" || operador == "<" || operador == ">" || operador == "<=" || operador == ">=") {
             if (tipo1 == tipo2) {
                 return true;
