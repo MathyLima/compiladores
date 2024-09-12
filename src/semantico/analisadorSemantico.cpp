@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <stdexcept>
+#include "../lexical/Token/Token.h"
 
 
 enum class Tipo {
@@ -112,4 +113,23 @@ class AnalisadorSemantico{
                 throw std::runtime_error("Erro: Operações relacionais só podem ser feitas entre tipos numéricos");
             }
         }
+
+        void processarToken(const Token &token){
+            switch (token.getType())
+            {
+            case TokenType::IDENTIFIER:{
+                Tipo tipo = checkVariavel(token.getText());
+                    if(tipo == Tipo::UNDEFINED){
+                        throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
+                    }
+                }
+            }
+                break;
+            
+            default:
+                break;
+            }
+        }
+
+
 };  
