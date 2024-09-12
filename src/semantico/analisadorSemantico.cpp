@@ -98,6 +98,13 @@ class TabelaSimbolos{
                 return variaveis[nome].constante;
         }
 
+        void verificaInicializacao(const std::string &nome) {
+            if (verificaVariavelExiste(nome) && !variaveis[nome].inicializado) {
+                throw std::runtime_error("Erro: Variável não inicializada: " + nome);
+            }
+        }
+
+
          // Obter tipo da variável
         Tipo getTipoVariavel(const std::string &nome) {
             if (verificaVariavelExiste(nome)) {
@@ -211,6 +218,8 @@ public:
         if (!verificarTipoValor(valorTipo, valor)) {
             throw std::runtime_error("Erro: Valor '" + valor + "' não corresponde ao tipo da variável '" + nome + "'.");
         }
+
+        scopeStack.top().verificaInicializacao(nome);
     }
 
 
@@ -267,6 +276,8 @@ public:
                 if(tipo == Tipo::UNDEFINED){
                     throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
                 }
+
+                scopeStack.top().verificaInicializacao(token.getText());
             }
             break;
             default:
