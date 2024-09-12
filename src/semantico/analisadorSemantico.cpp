@@ -114,6 +114,16 @@ class TabelaSimbolos{
 class AnalisadorSemantico {
 private:
     std::stack<TabelaSimbolos> scopeStack;
+    int estadoAtual;
+    
+    Tipo mapTokenTypeToTipo(TokenType tokenType) {
+        switch (tokenType) {
+            case TokenType::NUMBER: return Tipo::INT;
+            case TokenType::FLOAT_NUMBER: return Tipo::FLOAT;
+            case TokenType::IDENTIFIER: return Tipo::STRING;
+            default: return Tipo::UNDEFINED;
+        }
+    }
 
 public:
     AnalisadorSemantico() {
@@ -174,8 +184,6 @@ public:
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
                                      "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
                                      ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
-        } else {
-            std::cout << "Atribuição válida para a variável '" << nome << "'\n";
         }
     }
 
@@ -195,21 +203,25 @@ public:
 
         // Função para verificar operações relacionais
         void checkOpsRelacionais(Tipo tipo1, Tipo tipo2) {
-            if ((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) &&
-                (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT)) {
-                std::cout << "Operação relacional válida entre os tipos\n";
-            } else {
+            if (!((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) && (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT))) {
                 throw std::runtime_error("Erro: Operações relacionais só podem ser feitas entre tipos numéricos");
-            }
+            } 
         }
 
-        void processarToken(const Token &token){
-            switch (token.getType())
+        void processarToken(const Token &token,std::string){
+            switch (estadoAtual)
             {
-            case TokenType::IDENTIFIER:{
-                Tipo tipo = checkVariavel(token.getText());
-                    if(tipo == Tipo::UNDEFINED){
-                        throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
+                case 0:{
+                    if(TokenType::KEYWORD == token.getType()){
+                        estadoAtual = 1;
+                    }
+                }
+                //estado para declaração de variáveis
+                case 1:{
+                    if(scopeStack.top().verificaVariavelExiste(token.getText()) == false){
+                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()),token.getText());
+                    }else{
+                        throw std::runtime_error("Erro: Variavel já declarada no escopo atual");
                     }
                 }
                 break;
@@ -217,7 +229,6 @@ public:
                     break;
                 }
             }
-            
 
         };
 
