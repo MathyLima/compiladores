@@ -36,6 +36,26 @@ struct Procedimento
     std::vector<Tipo> parametros;
 };
 
+bool verificarTipoValor(Tipo tipo, const std::string &valor) {
+    try {
+        if (tipo == Tipo::INT) {
+            std::stoi(valor); // Tenta converter para inteiro
+        } else if (tipo == Tipo::FLOAT) {
+            std::stof(valor); // Tenta converter para float
+        } else if (tipo == Tipo::BOOL) {
+            if (valor != "true" && valor != "false") {
+                throw std::runtime_error("Valor booleano inválido: " + valor);
+            }
+            } else if (tipo == Tipo::STRING) {
+                    // Strings são sempre válidas
+            } else {
+                return false; // Tipo não suportado
+            }
+            return true;
+        } catch (const std::exception&) {
+            return false;
+        }
+}
 
 
 class TabelaSimbolos{
@@ -46,8 +66,12 @@ class TabelaSimbolos{
     public:
         //insere uma varivel com valor opcional na tabela
         void inserirVariavel(const std::string &nome, Tipo tipo, const std::string &valor, bool constante = false) {
+            if (constante && !verificarTipoValor(tipo, valor)) {
+                throw std::runtime_error("Erro: Valor '" + valor + "' não corresponde ao tipo da constante '" + nome + "'.");
+            }
             variaveis[nome] = {tipo, !valor.empty(), constante, valor};
         }
+
 
         void inserirFuncao(const std::string &nome, Tipo tipoRetorno, const std::vector<Tipo> &parametros){
             funcoes[nome] = {tipoRetorno,parametros};
@@ -173,8 +197,7 @@ public:
         saidaEscopo(); // Saia do escopo da função ao finalizar
     }
 
-
-    void checkAtribuicao(const std::string &nome, Tipo valorTipo) {
+    void checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
         Tipo varTipo = checkVariavel(nome);
         if (scopeStack.top().verificaConstante(nome)) {
             throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
@@ -184,7 +207,12 @@ public:
                                     "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
                                     ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
+        // Verifica se o valor atribuído é compatível com o tipo da variável
+        if (!verificarTipoValor(valorTipo, valor)) {
+            throw std::runtime_error("Erro: Valor '" + valor + "' não corresponde ao tipo da variável '" + nome + "'.");
+        }
     }
+
 
 
         // Função para verificar operações relacionais e lógicas
