@@ -16,13 +16,14 @@ private:
     int row;
     int col;
     std::unordered_map<std::string, std::string> reservedWords;
+    Token currentToken;
 
 public:
     Scanner(const std::string &source);
     Token nextToken();
+    Token getCurrentToken();
 
-private:
-    bool isDigit(char c);
+        private : bool isDigit(char c);
     bool isLetter(char c);
     bool isSpace(char c);
     bool isRelationalOperator(char c);
