@@ -220,10 +220,14 @@ public:
                 case 1:{
                     if(scopeStack.top().verificaVariavelExiste(token.getText()) == false){
                         scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()),token.getText());
+                        estadoAtual = 0;
+
+                        break;
                     }else{
                         throw std::runtime_error("Erro: Variavel já declarada no escopo atual");
                     }
                 }
+                
                 break;
                 default:
                     break;
