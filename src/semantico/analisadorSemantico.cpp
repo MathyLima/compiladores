@@ -93,7 +93,7 @@ class TabelaSimbolos{
 
         // Obter informações do procedimento
         Procedimento getProcedimento(const std::string &nome) {
-            if (procedimentos.find(nome) != procedimentos.end()) {
+            if (verificaProcedimentoExiste(nome)) {
                 return procedimentos[nome];
             }
             throw std::runtime_error("Procedimento não encontrado: " + nome);
@@ -101,9 +101,17 @@ class TabelaSimbolos{
 
         // Marcar variável como inicializada
         void marcarInicializada(const std::string &nome) {
-            if (variaveis.find(nome) != variaveis.end()) {
+            if (verificaVariavelExiste(nome)) {
                 variaveis[nome].inicializado = true;
             } else {
+                throw std::runtime_error("Variável não encontrada: " + nome);
+            }
+        }
+
+        void atribuiValorVariavel(const std::string &nome,const std::string &valor){
+            if(verificaVariavelExiste(nome)){
+                variaveis[nome].valor = valor;
+            }else {
                 throw std::runtime_error("Variável não encontrada: " + nome);
             }
         }
@@ -219,13 +227,25 @@ public:
                 //estado para declaração de variáveis
                 case 1:{
                     if(scopeStack.top().verificaVariavelExiste(token.getText()) == false){
-                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()),token.getText());
-                        estadoAtual = 0;
+                        scopeStack.top().inserirVariavel(token.getText(),Tipo::UNDEFINED);
+                        estadoAtual = 2;
 
                         break;
                     }else{
                         throw std::runtime_error("Erro: Variavel já declarada no escopo atual");
                     }
+                }
+
+                case 2:{
+                    if(TokenType::ASSIGNMENT == token.getType()){
+                        estadoAtual = 3;
+                    }
+
+                    break;
+                }
+
+                case 3:{
+
                 }
                 
                 break;
