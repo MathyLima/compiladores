@@ -194,14 +194,44 @@ public:
     }
 
         // Função para verificar operações relacionais
-        void checkOpsRelacionais(Tipo tipo1, Tipo tipo2) {
-            if ((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) &&
-                (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT)) {
-                std::cout << "Operação relacional válida entre os tipos\n";
+    bool checkOpsRelacionais(Tipo tipo1, Tipo tipo2, const std::string &operador) {
+    
+        // Operações aritméticas numéricas
+        if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
+            if ((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) && (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT)) {
+                return true;
             } else {
-                throw std::runtime_error("Erro: Operações relacionais só podem ser feitas entre tipos numéricos");
+                throw std::runtime_error("Erro: Operação aritmética inválida entre tipos " +
+                                        std::to_string(static_cast<int>(tipo1)) + " e " +
+                                        std::to_string(static_cast<int>(tipo2)));
             }
         }
+
+        // Operadores lógicos booleanos
+        if (operador == "&&" || operador == "||") {
+            if (tipo1 == Tipo::BOOL && tipo2 == Tipo::BOOL) {
+                return true;
+            } else {
+                throw std::runtime_error("Erro: Operação lógica inválida entre tipos " +
+                                        std::to_string(static_cast<int>(tipo1)) + " e " +
+                                        std::to_string(static_cast<int>(tipo2)));
+            }
+        }
+
+        // Operadores de comparação (==, !=, <, >, <=, >=) - válidos para tipos iguais
+        if (operador == "==" || operador == "!=" || operador == "<" || operador == ">" || operador == "<=" || operador == ">=") {
+            if (tipo1 == tipo2) {
+                return true;
+            } else {
+                throw std::runtime_error("Erro: Comparação inválida entre tipos " +
+                                        std::to_string(static_cast<int>(tipo1)) + " e " +
+                                        std::to_string(static_cast<int>(tipo2)));
+            }
+        }
+
+        throw std::runtime_error("Erro: Operador '" + operador + "' não reconhecido.");
+    }
+
 
         void processarToken(const Token &token){
             switch (token.getType())
