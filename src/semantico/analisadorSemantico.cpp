@@ -54,6 +54,8 @@ bool verificarTipoValor(Tipo tipo, const std::string &valor) {
             return true;
         } catch (const std::exception&) {
             return false;
+        } catch (const std::out_of_range&) {
+            return false;
         }
 }
 
@@ -74,10 +76,16 @@ class TabelaSimbolos{
 
 
         void inserirFuncao(const std::string &nome, Tipo tipoRetorno, const std::vector<Tipo> &parametros){
+            if (verificaFuncaoExiste(nome)) {
+                throw std::runtime_error("Erro: Função com o nome '" + nome + "' já existe.");
+            }
             funcoes[nome] = {tipoRetorno,parametros};
         }
 
         void inserirProcedimento(const std::string &nome, const std::vector<Tipo> &parametros){
+            if (verificaProcedimentoExiste(nome)) {
+                throw std::runtime_error("Erro: Procedimento com o nome '" + nome + "' já existe.");
+            }
             procedimentos[nome] = {parametros};
         }
 
@@ -94,8 +102,10 @@ class TabelaSimbolos{
         }
 
         bool verificaConstante(const std::string &nome) {
-            if (verificaVariavelExiste(nome))
+            if (verificaVariavelExiste(nome)){
                 return variaveis[nome].constante;
+            }
+            throw std::runtime_error("Erro: Variável não encontrada: " + nome);
         }
 
         void verificaInicializacao(const std::string &nome) {
@@ -211,8 +221,7 @@ public:
         if (scopeStack.top().verificaFuncaoExiste(nome)) {
             throw std::runtime_error("Erro: Função já declarada no escopo atual: " + nome);
         } else {
-            Tipo info = {tipoRetorno};
-            scopeStack.top().inserirFuncao(nome, info,parametros);
+            scopeStack.top().inserirFuncao(nome, tipoRetorno, parametros);
             entradaEscopo(); // Novo escopo para as variáveis da função
         }
     }
@@ -229,9 +238,7 @@ public:
         if (varTipo != valorTipo) {
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
                                      "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                     ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
-                                    "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                    ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo));
+                                     ". Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
         // Verifica se o valor atribuído é compatível com o tipo da variável
         if (!verificarTipoValor(valorTipo, valor)) {
@@ -292,23 +299,38 @@ public:
        for(const  auto&token : tokens){
         switch (token.getType()){
             case TokenType::IDENTIFIER: {
-                if(!scopeStack.top().verificaVariavelExiste(token.getText())){
-                    if(tipoAtual != Tipo::UNDEFINED){
-                        scopeStack.top().inserirVariavel(token.getText(),tipoAtual);
+                std::stack<TabelaSimbolos> tempStack = scopeStack;
+
+                while (!tempStack.empty()) {
+                    if (tempStack.top().verificaVariavelExiste(token.getText())) {
+                        scopeStack.top().verificaInicializacao(token.getText());
+                        break;
                     }
-                }else{
-                    throw std::runtime_error("Variável já foi declarada");
+                    tempStack.pop();
                 }
+
+                // Se a variável não foi encontrada, verifica se o tipo é UNDEFINED
+                if (!scopeStack.top().verificaVariavelExiste(token.getText())) {
+                    if (tipoAtual == Tipo::UNDEFINED) {
+                        throw std::runtime_error("Erro: Variável '" + token.getText() + "' não declarada.");
+                    } else {
+                        // Tipo foi definido antes de encontrar o identificador, empilha no escopo
+                        scopeStack.top().inserirVariavel(token.getText(), tipoAtual, "");
+                    }
+                }
+            }
+                break;
+            case TokenType::NUMBER:
+                tipoAtual = Tipo::INT;
+                break;
+
+            case TokenType::FLOAT_NUMBER:
+                tipoAtual = Tipo::FLOAT;
+                break;
+
+            default:
                 break;
         }
-
-        default:
-                break;
        }
-            
-
-        }
-
     };
-
 };
