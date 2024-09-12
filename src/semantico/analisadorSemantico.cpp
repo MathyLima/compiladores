@@ -20,6 +20,7 @@ struct Simbolo
 {
     Tipo tipo;
     bool inicializado;
+    bool constante;
     std::string valor;
 };
 
@@ -44,8 +45,8 @@ class TabelaSimbolos{
         std::unordered_map<std::string,Procedimento> procedimentos;
     public:
         //insere uma varivel com valor opcional na tabela
-        void inserirVariavel(const std::string &nome, Tipo tipo,const std::string &valor){
-            variaveis[nome] = {tipo,!valor.empty(),valor};
+        void inserirVariavel(const std::string &nome, Tipo tipo, const std::string &valor, bool constante = false) {
+            variaveis[nome] = {tipo, !valor.empty(), constante, valor};
         }
 
         void inserirFuncao(const std::string &nome, Tipo tipoRetorno, const std::vector<Tipo> &parametros){
@@ -66,6 +67,11 @@ class TabelaSimbolos{
 
         bool verificaProcedimentoExiste(const std::string &nome){
             return procedimentos.find(nome) != procedimentos.end();
+        }
+
+        bool verificaConstante(const std::string &nome) {
+            if (verificaVariavelExiste(nome))
+                return variaveis[nome].constante;
         }
 
          // Obter tipo da variável
@@ -170,12 +176,16 @@ public:
 
     void checkAtribuicao(const std::string &nome, Tipo valorTipo) {
         Tipo varTipo = checkVariavel(nome);
+        if (scopeStack.top().verificaConstante(nome)) {
+            throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
+        }
         if (varTipo != valorTipo) {
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
-                                     "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                     ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
+                                    "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
+                                    ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
     }
+
 
         // Função para verificar operações relacionais e lógicas
     bool checkOperacoes(Tipo tipo1, Tipo tipo2, Tipo valorTipo, const std::string &operador) {
