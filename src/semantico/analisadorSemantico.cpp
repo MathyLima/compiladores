@@ -20,6 +20,7 @@ struct Simbolo
 {
     Tipo tipo;
     bool inicializado;
+    bool constante;
     std::string valor;
 };
 
@@ -44,8 +45,8 @@ class TabelaSimbolos{
         std::unordered_map<std::string,Procedimento> procedimentos;
     public:
         //insere uma varivel com valor opcional na tabela
-        void inserirVariavel(const std::string &nome, Tipo tipo,const std::string &valor){
-            variaveis[nome] = {tipo,!valor.empty(),valor};
+        void inserirVariavel(const std::string &nome, Tipo tipo, const std::string &valor, bool constante = false) {
+            variaveis[nome] = {tipo, !valor.empty(), constante, valor};
         }
 
         void inserirFuncao(const std::string &nome, Tipo tipoRetorno, const std::vector<Tipo> &parametros){
@@ -66,6 +67,11 @@ class TabelaSimbolos{
 
         bool verificaProcedimentoExiste(const std::string &nome){
             return procedimentos.find(nome) != procedimentos.end();
+        }
+
+        bool verificaConstante(const std::string &nome) {
+            if (verificaVariavelExiste(nome))
+                return variaveis[nome].constante;
         }
 
          // Obter tipo da variável
@@ -168,7 +174,7 @@ public:
             tempStack.pop();
         }
 
-        throw std::runtime_error("Erro: Variável não declarada: " + nome);
+        throw std::runtime_error("Erro: Variável '" + nome + "' não declarada: ");
     }
 
     void declararFuncao(const std::string &nome, Tipo tipoRetorno, std::vector<Tipo> &parametros) {
@@ -188,71 +194,77 @@ public:
 
     void checkAtribuicao(const std::string &nome, Tipo valorTipo) {
         Tipo varTipo = checkVariavel(nome);
+        if (scopeStack.top().verificaConstante(nome)) {
+            throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
+        }
         if (varTipo != valorTipo) {
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
                                      "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
                                      ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
+                                    "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
+                                    ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo));
         }
     }
 
 
-        // Função para verificar operações aritméticas
-        Tipo checkOpsAritmeticas(Tipo tipo1, Tipo tipo2) {
-            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT) return Tipo::INT;
-            if (tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT) return Tipo::FLOAT;
-            if ((tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT) || (tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT)) {
-                return Tipo::FLOAT;  // Conversão implícita
-            }
-
+        // Função para verificar operações relacionais e lógicas
+    bool checkOperacoes(Tipo tipo1, Tipo tipo2, Tipo valorTipo, const std::string &operador) {
+    
+        // Operações aritméticas numéricas
+        if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
+            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: INT || 
+            tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
+            tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT ||
+            tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
+            tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT)
+            return true;
+        else{
             throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
-                                     std::to_string(static_cast<int>(tipo1)) + " e " +
-                                     std::to_string(static_cast<int>(tipo2)));
+                                    std::to_string(static_cast<int>(tipo1)) + " e " +
+                                    std::to_string(static_cast<int>(tipo2)));
+            }
         }
 
-        // Função para verificar operações relacionais
-        void checkOpsRelacionais(Tipo tipo1, Tipo tipo2) {
-            if (!((tipo1 == Tipo::INT || tipo1 == Tipo::FLOAT) && (tipo2 == Tipo::INT || tipo2 == Tipo::FLOAT))) {
-                throw std::runtime_error("Erro: Operações relacionais só podem ser feitas entre tipos numéricos");
-            } 
+        // Operadores lógicos booleanos
+        if (operador == "&&" || operador == "||" || operador == "and" || operador == "or") {
+            if (tipo1 == Tipo::BOOL && tipo2 == Tipo::BOOL) {
+                return true;
+            } else {
+                throw std::runtime_error("Erro: Operação lógica inválida entre tipos " +
+                                        std::to_string(static_cast<int>(tipo1)) + " e " +
+                                        std::to_string(static_cast<int>(tipo2)));
+            }
         }
 
-        void processarToken(const Token &token,std::string){
-            switch (estadoAtual)
-            {
-                case 0:{
-                    if(TokenType::KEYWORD == token.getType()){
-                        estadoAtual = 1;
-                    }
-                }
-                //estado para declaração de variáveis
-                case 1:{
-                    if(scopeStack.top().verificaVariavelExiste(token.getText()) == false){
-                        scopeStack.top().inserirVariavel(token.getText(),Tipo::UNDEFINED);
-                        estadoAtual = 2;
+        // Operadores de comparação (==, !=, <, >, <=, >=)
+        if (operador == "==" || operador == "!=" || operador == "<" || operador == ">" || operador == "<=" || operador == ">=") {
+            if (tipo1 == tipo2) {
+                return true;
+            } else {
+                throw std::runtime_error("Erro: Comparação inválida entre tipos " +
+                                        std::to_string(static_cast<int>(tipo1)) + " e " +
+                                        std::to_string(static_cast<int>(tipo2)));
+            }
+        }
 
-                        break;
-                    }else{
-                        throw std::runtime_error("Erro: Variavel já declarada no escopo atual");
-                    }
-                }
+        throw std::runtime_error("Erro: Operador '" + operador + "' não reconhecido.");
+    }
 
-                case 2:{
-                    if(TokenType::ASSIGNMENT == token.getType()){
-                        estadoAtual = 3;
-                    }
 
-                    break;
-                }
-
-                case 3:{
-
-                }
-                
-                break;
-                default:
-                    break;
+    void processarToken(const Token &token){
+        switch (token.getType())
+        {
+        case TokenType::IDENTIFIER:{
+            Tipo tipo = checkVariavel(token.getText());
+                if(tipo == Tipo::UNDEFINED){
+                    throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
                 }
             }
+            break;
+            default:
+                break;
+            }
+        }
+            
 
-        };
-
+    };
