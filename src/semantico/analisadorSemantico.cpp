@@ -320,14 +320,6 @@ public:
                 }
             }
                 break;
-            case TokenType::NUMBER:
-                tipoAtual = Tipo::INT;
-                break;
-
-            case TokenType::FLOAT_NUMBER:
-                tipoAtual = Tipo::FLOAT;
-                break;
-
             default:
                 break;
         }
