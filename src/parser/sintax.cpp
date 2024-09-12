@@ -29,11 +29,11 @@ public:
     }
 
     void parse_program() {
-        expect(PROGRAM); // pela definição inicia com program
-        expect(IDENTIFIER); //
-        expect(SEMICOLON);
-        parse_block();
-        expect(DOT);
+        expect(PROGRAM); // inicia com a palavra programa
+        expect(IDENTIFIER); // depois vem um nome identificador
+        expect(SEMICOLON); // por fim ponto e vígula
+        parse_block(); 
+        expect(DOT); // Termina com um ponto
     }
 
 private:
@@ -57,34 +57,65 @@ private:
     }
 
     void parse_block() {
-        parse_var_declaration();
-        parse_compound_statement();
+        parse_var_declaration(); // declarações de variáveis
+        parse_declare_subprogram();
+        parse_compound_statement(); // procedimentos
+    }
+
+    void parse_declare_subprogram(){
+        if(current_token.type == PROCEDURE){
+            parse_subprogramas();
+        }
+    }
+
+    void parse_subprogramas(){
+        expect(PROCEDURE);
+        expect(IDENTIFIER);
+        expect(LPAREN);
+        parse_identifier_list();
+        expect(RPAREN);
+        expect(SEMICOLON);
+        parse_declare_subprogram();
+        parse_compost_command();
+    }
+
+    void parse_compost_command(){
+        expect(BEGIN);
+        optional_commands();
+        expect(END);
     }
 
     void parse_var_declaration() {
+        printf("Estou analisando declarações de variáveis\n");
         if (current_token.type == VAR) {
-            advance();
-            parse_identifier_list();
-            expect(COLON);
-            parse_type();
+            printf("é VAR\n"); // se tem var deve iniciar uma lista de declarações de identificadores
+            advance(); // avança
+            parse_identifier_list(); // lista de variaveis
+            expect(COLON); // Dois pontos para atribuir o valor
+            parse_type(); // tipo da(s) variaveis
             expect(SEMICOLON);
         }
     }
 
     void parse_identifier_list() {
         expect(IDENTIFIER);
-        while (current_token.type == SEMICOLON) {
+        while (current_token.type == COMMA) { // enquanto tiver virgula ele aceita identificadores
             advance();
             expect(IDENTIFIER);
         }
     }
 
     void parse_type() {
+        // Pode derivar para integer | real | boolean
         if (current_token.type == INTEGER) {
             advance();
         } else if (current_token.type == REAL) {
             advance();
-        } else {
+        }
+        else if (current_token.type == BOOL) {
+            advance();
+        } 
+        else {
             throw SyntaxError("Erro de sintaxe: tipo de variável inválido");
         }
     }
@@ -149,12 +180,14 @@ private:
             case DOT: return ".";
             case VAR: return "var";
             case COLON: return ":";
+            case COMMA return ',';
             case INTEGER: return "integer";
             case REAL: return "real";
             case BEGIN: return "begin";
             case END: return "end";
             case ASSIGN: return ":=";
             case NUMBER: return "number";
+            case BOOL: return "bool";
             case PLUS: return "+";
             case MINUS: return "-";
             case MULTIPLY: return "*";
@@ -162,6 +195,7 @@ private:
             case LPAREN: return "(";
             case RPAREN: return ")";
             case EOF_TOKEN: return "EOF";
+            case PROCEDURE return "procedure";
             default: return "unknown";
         }
     }
@@ -169,14 +203,22 @@ private:
 
 int main() {
     // Tokens simulados de um código Pascal simples: "program exemplo; var x: integer; begin x := 5; end."
-    std::vector<Token> tokens = {
-        {PROGRAM, "program"}, {IDENTIFIER, "exemplo"}, {SEMICOLON, ";"},
-        {VAR, "var"}, {IDENTIFIER, "x"}, {COLON, ":"}, {INTEGER, "integer"}, {SEMICOLON, ";"},
-        {BEGIN, "begin"}, {IDENTIFIER, "x"}, {ASSIGN, ":="}, {NUMBER, "5"}, {SEMICOLON, ";"},
-        {END, "end"}, {DOT, "."}
-    };
+    std::vector<Token> tokens_without_error = {
+    {PROGRAM, "program"}, {IDENTIFIER, "exemplo"}, {SEMICOLON, ";"},
+    {VAR, "var"}, {IDENTIFIER, "x"}, {COMMA, ","}, {IDENTIFIER, "z"}, {COLON, ":"}, {INTEGER, "integer"}, {SEMICOLON, ";"},
+    {BEGIN, "begin"}, {IDENTIFIER, "x"}, {ASSIGN, ":="}, {NUMBER, "5"}, {SEMICOLON, ";"},
+    {END, "end"}, {DOT, "."}
+};
 
-    Parser parser(tokens);
+std::vector<Token> tokens_with_error = {
+    {PROGRAM, "program"}, {IDENTIFIER, "exemplo"}, {SEMICOLON, ";"},
+    {VAR, "var"}, {IDENTIFIER, "x"}, {COLON, ":"}, {INTEGER, "integer"}, {SEMICOLON, ";"},
+    {BEGIN, "begin"}, {IDENTIFIER, "x"}, {ASSIGN, ":="}, {NUMBER, "5"}, 
+    // Missing semicolon here
+    {END, "end"}, {DOT, "."}
+};
+
+    Parser parser(tokens_with_error);
 
     try {
         parser.parse_program();
