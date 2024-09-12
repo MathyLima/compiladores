@@ -123,13 +123,12 @@ class AnalisadorSemantico{
                         throw std::runtime_error("Erro: Variável não declarada: "+ token.getText());
                     }
                 }
-            }
                 break;
+                default:
+                    break;
+                }
+            }
             
-            default:
-                break;
-            }
-        }
 
+        };
 
-};  
