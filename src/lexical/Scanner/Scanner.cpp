@@ -5,14 +5,17 @@
 #include <vector>
 #include <unordered_map>
 
-bool analisadorSintatico(const Token &token) {
+std::vector<Token> tokenStream;
+
+bool analiseSintatica(const Token &token)
+{
     std::cout << "chamei o analisador sintatico pra " << token << std::endl;
     return true;
 };
 
 bool verificarSintaxe(const Token &token, int row, int col)
 {
-    if (!analisadorSintatico(token))
+    if (!analiseSintatica(token))
     {
         std::cerr << "syntax error na linha " << row << " e coluna " << col << std::endl;
         return false;
@@ -158,6 +161,7 @@ Token Scanner::nextToken()
             
             
             back();
+            tokenStream.push_back(currentToken);
             verificarSintaxe(currentToken, row, col);
             return currentToken;
 
@@ -175,8 +179,9 @@ Token Scanner::nextToken()
             {
                 back();
                 currentToken = Token(TokenType::NUMBER, content);
-              
-                 verificarSintaxe(currentToken, row, col);
+
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             break;
@@ -205,8 +210,9 @@ Token Scanner::nextToken()
                 {
                     back();
                     currentToken = Token(TokenType::FLOAT_NUMBER, content);
-                    
-                     verificarSintaxe(currentToken, row, col);
+
+                    tokenStream.push_back(currentToken);
+                    verificarSintaxe(currentToken, row, col);
                     return currentToken; 
                 }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
@@ -222,8 +228,9 @@ Token Scanner::nextToken()
             {
                 back();
                 currentToken = Token(TokenType::FLOAT_NUMBER, content);
-               
-                 verificarSintaxe(currentToken, row, col);
+
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken; 
             }
             break;
@@ -237,21 +244,24 @@ Token Scanner::nextToken()
             {
                 content += currentChar;
                 currentToken = Token(TokenType::REL_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (isSpace(currentChar) || isDigit(currentChar))
             {
                 back();
                 currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else
             {
                 back();
                 currentToken = Token(TokenType::REL_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
         case 8:
@@ -263,7 +273,9 @@ Token Scanner::nextToken()
             else
             {
                 currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             break;
@@ -280,31 +292,36 @@ Token Scanner::nextToken()
             if (currentChar == ';')
             {
                 currentToken = Token(TokenType::SEMICOLON, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (currentChar == ',')
             {
                 currentToken = Token(TokenType::COMMA, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (currentChar == '.')
             {
                 currentToken = Token(TokenType::DOT, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (currentChar == ':')
             {
                 currentToken = Token(TokenType::COLON, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (currentChar == '(')
             {
                 currentToken = Token(TokenType::LPAREN, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else if (currentChar == ')')
@@ -316,7 +333,8 @@ Token Scanner::nextToken()
             else
             {
                 currentToken = Token(TokenType::DELIMITER, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
 
@@ -325,14 +343,17 @@ Token Scanner::nextToken()
             {
                 back();
                 currentToken = Token(TokenType::ADD_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else
             {
                 back();
+                
                 currentToken = Token(TokenType::MULT_OPERATOR, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             break;
@@ -350,14 +371,16 @@ Token Scanner::nextToken()
             {
                 content += currentChar;
                 currentToken = Token(TokenType::ASSIGNMENT, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
             else
             {
                 back();
                 currentToken = Token(TokenType::DELIMITER, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
         case 14:
@@ -370,7 +393,8 @@ Token Scanner::nextToken()
             {
                 back();
                 currentToken = Token(TokenType::DELIMITER, content);
-                 verificarSintaxe(currentToken, row, col);
+                tokenStream.push_back(currentToken);
+                verificarSintaxe(currentToken, row, col);
                 return currentToken;
             }
         default:
