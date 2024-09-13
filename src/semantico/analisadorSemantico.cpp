@@ -310,7 +310,6 @@ public:
                 }else if(token.getText() == "end"){
                     saidaEscopo();
                 }
-
             break;
                 
             }
@@ -324,6 +323,7 @@ public:
                             assignmenting = false;
                         };
                     }
+                    
                     else{
                         tokenProcessado = token;
                     }
@@ -346,9 +346,11 @@ public:
                         scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
                     }
                 }
-
                 break;
             }
+
+
+
 
             case TokenType::ASSIGNMENT:{
                 assignmenting = true;

@@ -1,6 +1,9 @@
 #include <iostream>
 #include "lexical/Scanner/Scanner.h"
 #include "lexical/Token/Token.h"
+#include "../parser/Parser.h"
+
+
 
 int main()
 {
@@ -19,7 +22,23 @@ int main()
         std::cout << tk.getText() << " (Type: " << static_cast<int>(tk.getType()) << ")" << std::endl;
     }
 
-    // Parser parse();
+    Parser parser(tokenStream);
+
+    try
+    {
+        ASTNode *ast = parser.parse_program(); // Gera a AST
+        std::cout << "Programa Pascal analisado com sucesso!" << std::endl;
+
+        NodeLevel nodeLevels;
+        build_node_levels(ast, nodeLevels); // Constrói o array de arrays
+        std::cout << "\nConteúdo do array de arrays:" << std::endl;
+        nodeLevels.printLevels(); // Imprime os níveis de nós
+    }
+    catch (const SyntaxError &e)
+    {
+        std::cerr << e.what() << std::endl;
+    }
+
 
 
 
