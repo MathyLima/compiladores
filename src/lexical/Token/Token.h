@@ -19,23 +19,25 @@ enum class TokenType
     ASSIGNMENT,
     LITERAL,
     REL_FUNCTION,
-
-    NONE,
+    NONE
 };
 
 class Token
 {
-    private:
-        TokenType type;
-        std::string text;
+private:
+    TokenType type;
+    std::string text;
+    std::string row;
 
-    public:
-        Token(TokenType type = TokenType::NONE, const std::string &text = "");
+public:
+    Token(TokenType type = TokenType::NONE, const std::string &text = "", const std::string &row = "");
 
-        TokenType getType() const;
-        std::string getText() const;
+    TokenType getType() const;
+    void setType(TokenType newType); // Removido o Token:: desnecessário
+    std::string getRow() const;
+    std::string getText() const;
 
-        friend std::ostream &operator<<(std::ostream &os, const Token &token);
-    };
+    friend std::ostream &operator<<(std::ostream &os, const Token &token);
+};
 
 #endif

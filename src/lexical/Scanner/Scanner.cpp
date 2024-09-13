@@ -129,19 +129,19 @@ Token Scanner::nextToken()
             existReserved = reservedWords.find(content);
             if (existReserved != reservedWords.end())
             {
-                currentToken = Token(TokenType::KEYWORD, existReserved->second);
+                currentToken = Token(TokenType::KEYWORD, existReserved->second,std::to_string(row));
             }
             else if (content == "AND" || content == "and")
             {
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content,std::to_string(row));
             }
             else if (content == "OR" || content == "or")
             {
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
+                currentToken = Token(TokenType::ADD_OPERATOR, content,std::to_string(row));
             }
             else
             {
-                currentToken = Token(TokenType::IDENTIFIER, content);
+                currentToken = Token(TokenType::IDENTIFIER, content,std::to_string(row));
             }
             
             //Aqui, o currentChar precisa ser igual a currentChar -1 posição. Como posso fazer isso com o que tem implementado aqui nesse aqruivo chat?
@@ -161,7 +161,7 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::NUMBER, content);
+                currentToken = Token(TokenType::NUMBER, content,std::to_string(row));
                 return currentToken; // Número inteiro
             }
             break;
@@ -189,7 +189,7 @@ Token Scanner::nextToken()
                 if (isDigit(content.back()))
                 {
                     back();
-                    currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                    currentToken = Token(TokenType::FLOAT_NUMBER, content,std::to_string(row));
                     return currentToken; // Retorna número flutuante com expoente
                 }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
@@ -204,7 +204,7 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                currentToken = Token(TokenType::FLOAT_NUMBER, content,std::to_string(row));
                 return currentToken; // Retorna número flutuante com expoente
             }
             break;
@@ -217,19 +217,19 @@ Token Scanner::nextToken()
             else if (content.back() == '<' && currentChar == '>')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::REL_OPERATOR, content);
+                currentToken = Token(TokenType::REL_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             else if (isSpace(currentChar) || isDigit(currentChar))
             {
                 back();
-                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
+                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             break;
@@ -242,7 +242,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             break;
@@ -251,21 +251,21 @@ Token Scanner::nextToken()
             {
                 back();
             }
-            currentToken = Token(TokenType::REL_OPERATOR, content);
+            currentToken = Token(TokenType::REL_OPERATOR, content,std::to_string(row));
             return currentToken;
 
             break;
         case 10:
             if (currentChar == ';')
             {
-                currentToken = Token(TokenType::DELIMITER, content);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
                 return currentToken;
             }
             if (isRelationalOperator(currentChar))
             {
                 back();
             }
-            currentToken = Token(TokenType::DELIMITER, content);
+            currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
             return currentToken;
             break;
 
@@ -273,13 +273,13 @@ Token Scanner::nextToken()
             if (content.back() == '+' || content.back() == '-')
             {
                 back();
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
+                currentToken = Token(TokenType::ADD_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content,std::to_string(row));
                 return currentToken;
             }
             break;
@@ -296,13 +296,13 @@ Token Scanner::nextToken()
             if (currentChar == '=')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::ASSIGNMENT, content);
+                currentToken = Token(TokenType::ASSIGNMENT, content,std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
                 return currentToken;
             }
         case 14:
@@ -314,7 +314,7 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
                 return currentToken;
             }
         default:

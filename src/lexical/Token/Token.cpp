@@ -1,6 +1,6 @@
 #include "Token.h"
 
-Token::Token(TokenType type, const std::string &text, const std::string &row) : type(type), row(row) {}
+Token::Token(TokenType type, const std::string &text, const std::string &row) : type(type), text(text), row(row){}
 
 TokenType Token::getType() const
 {
