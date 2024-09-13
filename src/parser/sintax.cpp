@@ -5,6 +5,8 @@
 #include <stack>
 #include <vector>
 #include <unordered_set>
+#include <functional>
+
 // Estrutura de token
 enum TokenType
 {
@@ -786,70 +788,192 @@ private:
 
 // FUNCAO DE ACHAR VARIAVEL NAO DECLARADA PARA FACILITAR ENTENDIMENTO DE COMO UM CODIGO DO SEMANTICO DEVE MANIPULAR ESSA ESTRUTURA DE DADOS
 // A ENTRADA DE TESTE ESTA COM O ERRO SEMANTICO DE USAR UMA VARIAVEL NAO DECLARADA
+// Função para parsear um string de nó e retornar um Token
+// Função que parseia uma string representando um nó em um Token
+Token parse_token(const std::string &node_str)
+{
+    Token token;
+    // Encontra as posições das substrings "Type: ", ", Value: " e ", Line: " na string do nó
+    size_t posType = node_str.find("Type: ");
+    size_t posValue = node_str.find(", Value: ");
+    size_t posLine = node_str.find(", Line: ");
+
+    // Se não encontrar "Type" ou "Value", retorna um token inválido
+    if (posType == std::string::npos || posValue == std::string::npos)
+    {
+        token.type = NONE;
+        token.value = "";
+        token.line = "";
+        return token;
+    }
+
+    // Extrai o tipo do token da substring após "Type: " até ", Value: "
+    // 6 é o comprimento da string "Type: " que deve ser ignorada para pegar o valor após ela
+    std::string type_str = node_str.substr(posType + 6, posValue - (posType + 6));
+    token.type = static_cast<TokenType>(std::stoi(type_str)); // Converte para o tipo de token correspondente
+
+    // Se encontrar "Line", extrai o valor do token e o número da linha
+    std::string value_str;
+    if (posLine != std::string::npos)
+    {
+        // 9 é o comprimento da string ", Value: " que deve ser ignorada para pegar o valor após ela
+        value_str = node_str.substr(posValue + 9, posLine - (posValue + 9)); // Extrai o valor do token
+        // Extrai o número da linha a partir de "Line: "
+        token.line = node_str.substr(posLine + 8); // 8 é o comprimento da string ", Line: "
+    }
+    else
+    {
+        // Se não houver "Line", extrai apenas o valor do token
+        value_str = node_str.substr(posValue + 9);
+        token.line = "";
+    }
+    token.value = value_str;
+
+    return token;
+}
+
+// Função de análise semântica corrigida
+// Verifica o uso e a declaração correta das variáveis em um programa
 void semantic_analysis(const NodeLevel &nodeLevels)
 {
-    std::unordered_set<std::string> declaredVariables; // Conjunto para armazenar variáveis declaradas
+    std::unordered_set<std::string> declaredVariables; // Conjunto para armazenar nomes de variáveis já declaradas
 
-    for (const auto &level : nodeLevels.levels) // Acessando os níveis dentro do NodeLevel
+    // Função lambda auxiliar para processar recursivamente os níveis de nós
+    std::function<void(const std::vector<std::string> &)> processLevel;
+    processLevel = [&](const std::vector<std::string> &level)
     {
+        // Se o nível atual estiver vazio, retorna imediatamente
         if (level.empty())
-        {
-            continue;
-        }
+            return;
 
-        // Verifica se é um bloco de declaração de variáveis (VarDeclaration)
-        if (level[0].find("VarDeclaration") != std::string::npos)
+        // Parseia o primeiro elemento do nível (nó pai)
+        std::string parentNodeStr = level[0];
+        Token parentToken = parse_token(parentNodeStr); // Converte a string do nó pai para um token
+
+        // Se o nó pai for uma declaração de variável, varlist ou identificador, coleta as variáveis declaradas
+        if (parentToken.value == "VarDeclaration" || parentToken.value == "VarList" || parentToken.value == "IdentifierList")
         {
+            // Percorre os tokens filhos do nível atual
             for (size_t i = 1; i < level.size(); ++i)
             {
-                size_t posType = level[i].find("Type: 0"); // Verifica se o token é do tipo IDENTIFIER (Type: 0)
-                if (posType != std::string::npos)
+                std::string childNodeStr = level[i];
+                Token childToken = parse_token(childNodeStr); // Converte a string do nó filho para um token
+
+                if (childToken.type == IDENTIFIER)
                 {
-                    size_t posValue = level[i].find("Value: ");
-                    if (posValue != std::string::npos)
-                    {
-                        std::string variableName = level[i].substr(posValue + 7); // 7 é o tamanho de "Value: "
-                        declaredVariables.insert(variableName);
-                    }
+                    // Se o token é um identificador, adiciona o nome da variável ao conjunto de variáveis declaradas
+                    declaredVariables.insert(childToken.value);
                 }
-            }
-        }
-
-        // Verifica o uso de variáveis em AssignmentStatement, Expression, ou Term
-        if (level[0].find("AssignmentStatement") != std::string::npos ||
-            level[0].find("Expression") != std::string::npos ||
-            level[0].find("Term") != std::string::npos)
-        {
-            for (size_t i = 1; i < level.size(); ++i)
-            {
-                size_t posType = level[i].find("Type: 0"); // Verifica se o token é do tipo IDENTIFIER (Type: 0)
-                if (posType != std::string::npos)
+                else if (childToken.type == NONE)
                 {
-                    size_t posValue = level[i].find("Value: ");
-                    if (posValue != std::string::npos)
+                    // Se o token é do tipo NONE (não-terminal), processa recursivamente o nível correspondente em nodeLevels
+                    for (const auto &nextLevel : nodeLevels.levels)
                     {
-                        std::string variableName = level[i].substr(posValue + 7);
-                        if (declaredVariables.find(variableName) == declaredVariables.end())
+                        if (!nextLevel.empty() && nextLevel[0] == childNodeStr)
                         {
-                            // Se a variável não foi declarada, reporta o erro
-                            size_t posLine = level[i].find("Line: ");
-                            std::string lineNumber = (posLine != std::string::npos) ? level[i].substr(posLine + 6) : "desconhecida";
-                            std::cerr << "Erro semântico na linha " << lineNumber << ": Variável '" << variableName << "' utilizada sem ter sido declarada.\n";
+                            processLevel(nextLevel);
+                            break;
                         }
                     }
                 }
             }
         }
+        else
+        {
+            // Se o nó pai é uma instrução de atribuição, expressão ou termo, verifica o uso de variáveis
+            if (parentToken.value == "AssignmentStatement" ||
+                parentToken.value == "Expression" ||
+                parentToken.value == "Term")
+            {
+                // Percorre os tokens filhos do nível atual
+                for (size_t i = 1; i < level.size(); ++i)
+                {
+                    std::string childNodeStr = level[i];
+                    Token childToken = parse_token(childNodeStr); // Converte a string do nó filho para um token
+
+                    if (childToken.type == IDENTIFIER)
+                    {
+                        // Se o token é um identificador, verifica se a variável foi declarada
+                        if (declaredVariables.find(childToken.value) == declaredVariables.end())
+                        {
+                            // Se a variável não foi declarada, reporta o erro
+                            std::string lineNumber = childToken.line.empty() ? "desconhecida" : childToken.line;
+                            std::cerr << "Erro semântico na linha " << lineNumber << ": Variável '" << childToken.value << "' utilizada sem ter sido declarada.\n";
+                        }
+                    }
+                    else if (childToken.type == NONE)
+                    {
+                        // Se o token é do tipo NONE (não-terminal), processa recursivamente o nível correspondente em nodeLevels
+                        for (const auto &nextLevel : nodeLevels.levels)
+                        {
+                            if (!nextLevel.empty() && nextLevel[0] == childNodeStr)
+                            {
+                                processLevel(nextLevel);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Para outros tipos de nós, processa recursivamente seus filhos
+                for (size_t i = 1; i < level.size(); ++i)
+                {
+                    std::string childNodeStr = level[i];
+                    Token childToken = parse_token(childNodeStr); // Converte a string do nó filho para um token
+
+                    if (childToken.type == NONE)
+                    {
+                        for (const auto &nextLevel : nodeLevels.levels)
+                        {
+                            if (!nextLevel.empty() && nextLevel[0] == childNodeStr)
+                            {
+                                processLevel(nextLevel);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    // Inicia o processamento a partir do primeiro nível de nós
+    if (!nodeLevels.levels.empty())
+    {
+        processLevel(nodeLevels.levels[0]);
     }
 }
 
 int main()
 {
+   
+    std::vector<Token> tokens_test1 = {
+        {KEYWORD, "program", "1"},         // program
+        {IDENTIFIER, "TesteCorreto", "1"}, // Nome do programa
+        {DELIMITER, ";", "1"},             // ;
+
+        {KEYWORD, "var", "2"},     // var
+        {IDENTIFIER, "x", "2"},    // x (declaração de variável)
+        {COLON, ":", "2"},         // :
+        {KEYWORD, "integer", "2"}, // integer (tipo da variável)
+        {DELIMITER, ";", "2"},     // ;
+
+        {KEYWORD, "begin", "3"}, // begin
+        {IDENTIFIER, "x", "4"},  // x (uso da variável declarada)
+        {ASSIGNMENT, ":=", "4"}, // :=
+        {NUMBER, "10", "4"},     // 10
+        {DELIMITER, ";", "4"},   // ;
+
+        {KEYWORD, "end", "6"}, // end
+        {DELIMITER, ".", "6"}  // .
+    };
     // ESSE CODIGO POSSUI O ERRO SEMANTICO DE USAR UMA VARIAVEL NAO DECLARADA
     std::vector<Token> tokens_test = {
-        {KEYWORD, "program", "1"},                    // program
+        {KEYWORD, "program", "1"},      // program
         {IDENTIFIER, "TestandoS", "1"}, // ErrorUndeclaredVariable
-        {DELIMITER, ";", "1"},                        // ;
+        {DELIMITER, ";", "1"},          // ;
 
         {KEYWORD, "begin", "3"}, // begin
         {IDENTIFIER, "x", "4"},  // x
@@ -861,7 +985,7 @@ int main()
         {DELIMITER, ".", "6"}  // .
     };
 
-    Parser parser(tokens_test);
+    Parser parser(tokens_test1);
     try
     {
         ASTNode *ast = parser.parse_program(); // Gera a AST
