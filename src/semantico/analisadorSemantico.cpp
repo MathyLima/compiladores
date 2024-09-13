@@ -221,7 +221,7 @@ public:
         saidaEscopo(); // Saia do escopo da função ao finalizar
     }
 
-    void checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
+    bool checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
         Tipo varTipo = checkVariavel(nome);
         if (scopeStack.top().verificaConstante(nome)) {
             throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
@@ -239,6 +239,8 @@ public:
         }
 
         scopeStack.top().verificaInicializacao(nome);
+
+        return true;
     }
 
 
@@ -289,7 +291,8 @@ public:
 
     void processarBloco(const std::vector<Token> &tokens) {
     Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
-    
+    Token tokenProcessado;
+    bool assignmenting = false;
     for (size_t i = 0; i < tokens.size(); ++i) {
         const auto &token = tokens[i];
         switch (token.getType()) {
@@ -306,32 +309,51 @@ public:
             }
 
             case TokenType::IDENTIFIER: {
-                if(i+1 < tokens.size() && tokens[i+1].getType() == TokenType::ASSIGNMENT){
-                    // A variável é seguida por uma atribuição
-                    std::string nomeVariavel = token.getText();
-                    Tipo tipoVariavel = tipoAtual;
-                    if(scopeStack.top().verificaVariavelExiste(nomeVariavel)){
-                        if(tipoAtual!=Tipo::UNDEFINED){
-                            throw std::runtime_error("Variável já foi declarada " + nomeVariavel);                            
-                        }
+                if(scopeStack.top().verificaVariavelExiste(token.getText())){
+                    std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
+                    if(assignmenting){
+                        if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
+                            assignmenting = false;
+                        };
                     }
                     else{
-                            if(tipoAtual!= Tipo::UNDEFINED){
-                                scopeStack.top().inserirVariavel(nomeVariavel,tipoVariavel);
-                            }else{
-                                throw std::runtime_error("Tentativa de uso de variável não declarada sem tipo");
-                            }
-                     }
+                        tokenProcessado = token;
+                    }
+                }else{
+                    if(tipoAtual != Tipo::UNDEFINED){
+                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()));
+                    }else{
+                        throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                    }
                 }
                 break;
             }
+
+            case TokenType::NUMBER:
+            case TokenType::FLOAT_NUMBER:
+            case TokenType::LITERAL:{
+                if(assignmenting){
+                    mapTokenTypeToTipo(token.getType());
+                    if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                        scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
+                    }
+                }
+
+                break;
+            }
+
             case TokenType::ASSIGNMENT:{
+                assignmenting = true;
+                break;
             }
             case TokenType::BEGIN:{
                 entradaEscopo();
+                break;
             }
             case TokenType::END:{
                 saidaEscopo();
+                break;
             }
             // Outros cases...
         }

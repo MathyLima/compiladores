@@ -52,13 +52,15 @@ class Token
 private:
     TokenType type;
     std::string text;
+    std::string row;
 
 public:
-    Token(TokenType type = TokenType::NONE, const std::string &text = "");
+    Token(TokenType type = TokenType::NONE, const std::string &text = "", const std::string &row );
 
     TokenType getType() const;
     void setType(TokenType newType);
     std::string getText() const;
+    std::string getRow() const;
 
     friend std::ostream &operator<<(std::ostream &os, const Token &token);
 };

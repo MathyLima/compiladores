@@ -1,15 +1,12 @@
 #include <iostream>
 #include "lexical/Scanner/Scanner.h"
 #include "lexical/Token/Token.h"
-#include "parser/Parser.h"
 
 int main()
 {
     std::vector<Token> tokenStream;
     Scanner sc("source_code.mc");
 
-    // Primeiro, imprima todos os tokens gerados pelo scanner
-    std::cout << "Token sequence:" << std::endl;
     Token tk;
     while (true)
     {
@@ -18,12 +15,13 @@ int main()
         {
             break;
         }
-        tokenStream.push_back(tk);
+        tokenStream.push_back({tk.getType(),tk.getText(),tk.getRow()});
         std::cout << tk.getText() << " (Type: " << static_cast<int>(tk.getType()) << ")" << std::endl;
-    
-
     }
-    //analisadorSintatico(tokenStream);
+
+    // Parser parse();
+
+
 
     std::cout << "Analise lexica foi sucesso" << std::endl;
 

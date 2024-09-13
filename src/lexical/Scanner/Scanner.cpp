@@ -144,25 +144,24 @@ Token Scanner::nextToken()
             existReserved = reservedWords.find(content);
             if (existReserved != reservedWords.end())
             {
-                currentToken = Token(TokenType::KEYWORD, existReserved->second);
+                currentToken = Token(TokenType::KEYWORD, existReserved->second,std::to_string(row));
             }
             else if (content == "AND" || content == "and")
             {
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content),std::to_string(row);
             }
             else if (content == "OR" || content == "or")
             {
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
+                currentToken = Token(TokenType::ADD_OPERATOR, content,std::to_string(row));
             }
             else
             {
-                currentToken = Token(TokenType::IDENTIFIER, content);
+                currentToken = Token(TokenType::IDENTIFIER, content),std::to_string(row);
             }
             
             
             back();
-            tokenStream.push_back(currentToken);
-            verificarSintaxe(currentToken, row, col);
+    
             return currentToken;
 
         case 3: 
@@ -178,10 +177,9 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::NUMBER, content);
+                currentToken = Token(TokenType::NUMBER, content,std::to_string(row));
 
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                
                 return currentToken;
             }
             break;
@@ -209,10 +207,9 @@ Token Scanner::nextToken()
                 if (isDigit(content.back()))
                 {
                     back();
-                    currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                    currentToken = Token(TokenType::FLOAT_NUMBER, content,std::to_string(row));
 
-                    tokenStream.push_back(currentToken);
-                    verificarSintaxe(currentToken, row, col);
+                    
                     return currentToken; 
                 }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
@@ -227,10 +224,9 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::FLOAT_NUMBER, content);
+                currentToken = Token(TokenType::FLOAT_NUMBER, content,std::to_string(row));
 
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                
                 return currentToken; 
             }
             break;
@@ -243,7 +239,7 @@ Token Scanner::nextToken()
             else if (content.back() == '<' && currentChar == '>')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::REL_OPERATOR, content);
+                currentToken = Token(TokenType::REL_OPERATOR, content,std::to_string(row));
                 tokenStream.push_back(currentToken);
                 verificarSintaxe(currentToken, row, col);
                 return currentToken;
@@ -251,17 +247,15 @@ Token Scanner::nextToken()
             else if (isSpace(currentChar) || isDigit(currentChar))
             {
                 back();
-                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content,std::to_string(row));
+                
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::REL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::REL_OPERATOR, content,std::to_string(row));
+    
                 return currentToken;
             }
         case 8:
@@ -272,10 +266,8 @@ Token Scanner::nextToken()
             }
             else
             {
-                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content,std::to_string(row));
+                
                 return currentToken;
             }
             break;
@@ -284,57 +276,50 @@ Token Scanner::nextToken()
             {
                 back();
             }
-            currentToken = Token(TokenType::REL_OPERATOR, content);
+            currentToken = Token(TokenType::REL_OPERATOR, content,std::to_string(row));
             return currentToken;
 
             break;
         case 10:
             if (currentChar == ';')
             {
-                currentToken = Token(TokenType::SEMICOLON, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::SEMICOLON, content,std::to_string(row));
+               
                 return currentToken;
             }
             else if (currentChar == ',')
             {
-                currentToken = Token(TokenType::COMMA, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::COMMA, content,std::to_string(row));
+                
                 return currentToken;
             }
             else if (currentChar == '.')
             {
-                currentToken = Token(TokenType::DOT, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DOT, content,std::to_string(row));
+               
                 return currentToken;
             }
             else if (currentChar == ':')
             {
-                currentToken = Token(TokenType::COLON, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::COLON, content,std::to_string(row));
+                
                 return currentToken;
             }
             else if (currentChar == '(')
             {
-                currentToken = Token(TokenType::LPAREN, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::LPAREN, content,std::to_string(row));
+        
                 return currentToken;
             }
             else if (currentChar == ')')
             {
-                currentToken = Token(TokenType::RPAREN, content);
-                 verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::RPAREN, content,std::to_string(row));
                 return currentToken;
             }
             else
             {
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
+                
                 return currentToken;
             }
 
@@ -342,18 +327,16 @@ Token Scanner::nextToken()
             if (content.back() == '+' || content.back() == '-')
             {
                 back();
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::ADD_OPERATOR, content,std::to_string(row));
+                
                 return currentToken;
             }
             else
             {
                 back();
                 
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::MULT_OPERATOR, content,std::to_string(row));
+               
                 return currentToken;
             }
             break;
@@ -370,17 +353,15 @@ Token Scanner::nextToken()
             if (currentChar == '=')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::ASSIGNMENT, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::ASSIGNMENT, content,std::to_string(row));
+                
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
+                
                 return currentToken;
             }
         case 14:
@@ -392,9 +373,8 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content,std::to_string(row));
+               
                 return currentToken;
             }
         default:
