@@ -175,6 +175,7 @@ private:
             case TokenType::NUMBER: return Tipo::INT;
             case TokenType::FLOAT_NUMBER: return Tipo::FLOAT;
             case TokenType::IDENTIFIER: return Tipo::STRING;
+            case TokenType::NONE: return Tipo::VOID;
             default: return Tipo::UNDEFINED;
         }
     }
@@ -190,7 +191,11 @@ public:
 
     void saidaEscopo() {
         if (!scopeStack.empty()) {
-            scopeStack.pop();
+            if (scopeStack.size() == 1) {
+                throw std::runtime_error("Erro: Tentativa de sair de escopo global sem um 'begin' correspondente");
+            } else {
+                scopeStack.pop();
+            }
         } else {
             throw std::runtime_error("Erro: Tentativa de sair de um escopo inexistente");
         }
@@ -298,6 +303,7 @@ public:
 
     void processarBloco(const std::vector<Token> &tokens) {
         Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
+        bool constante = false;
         Token tokenProcessado;
         bool assignmenting = false;
         for (size_t i = 0; i < tokens.size(); ++i) {
@@ -312,10 +318,18 @@ public:
                         tipoAtual = Tipo::BOOL;
                     } else if (token.getText() == "string") {
                         tipoAtual = Tipo::STRING;
-                    }else if(token.getText() == "begin"){
+                    } else if (token.getText() == "void") {
+                        tipoAtual = Tipo::VOID;  
+                    } else if (token.getText() == "const") {
+                        constante = true;
+                    } else if(token.getText() == "begin"){
                         entradaEscopo();
-                    }else if(token.getText() == "end"){
-                        saidaEscopo();
+                    } else if(token.getText() == "end"){
+                        try {
+                        saidaEscopo();  // Verifica se há escopos suficientes antes de sair
+                        } catch (const std::runtime_error &e) {
+                        throw std::runtime_error("Erro no escopo: " + std::string(e.what()) + " na linha " + std::to_string(token.getRow()));
+                        }
                     }
 
                 break;
@@ -326,6 +340,9 @@ public:
                     if(scopeStack.top().verificaVariavelExiste(token.getText())){
                         std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
                         if(assignmenting){
+                            if (scopeStack.top().verificaConstante(token.getText())) {
+                                throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
+                            }
                             if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
                                 scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
                                 assignmenting = false;
@@ -341,6 +358,7 @@ public:
                             throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
                         }
                     }
+                    constante = false;
                     break;
                 }
 
@@ -361,11 +379,7 @@ public:
                     assignmenting = true;
                     break;
                 }
-                
-                // Outros cases...
             }
-        }
-            
+        }       
     }
-
 };
