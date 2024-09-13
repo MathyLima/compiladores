@@ -297,76 +297,75 @@ public:
 
 
     void processarBloco(const std::vector<Token> &tokens) {
-    Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
-    Token tokenProcessado;
-    bool assignmenting = false;
-    for (size_t i = 0; i < tokens.size(); ++i) {
-        const auto &token = tokens[i];
-        switch (token.getType()) {
-            case TokenType::KEYWORD: {
-                if (token.getText() == "int") {
-                    tipoAtual = Tipo::INT;
-                } else if (token.getText() == "float") {
-                    tipoAtual = Tipo::FLOAT;
-                } else if (token.getText() == "bool") {
-                    tipoAtual = Tipo::BOOL;
-                } else if (token.getText() == "string") {
-                    tipoAtual = Tipo::STRING;
-                }else if(token.getText() == "begin"){
-                    entradaEscopo();
-                }else if(token.getText() == "end"){
-                    saidaEscopo();
+        Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
+        Token tokenProcessado;
+        bool assignmenting = false;
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            const auto &token = tokens[i];
+            switch (token.getType()) {
+                case TokenType::KEYWORD: {
+                    if (token.getText() == "int") {
+                        tipoAtual = Tipo::INT;
+                    } else if (token.getText() == "float") {
+                        tipoAtual = Tipo::FLOAT;
+                    } else if (token.getText() == "bool") {
+                        tipoAtual = Tipo::BOOL;
+                    } else if (token.getText() == "string") {
+                        tipoAtual = Tipo::STRING;
+                    }else if(token.getText() == "begin"){
+                        entradaEscopo();
+                    }else if(token.getText() == "end"){
+                        saidaEscopo();
+                    }
+
+                break;
+                    
                 }
 
-            break;
-                
-            }
-
-            case TokenType::IDENTIFIER: {
-                if(scopeStack.top().verificaVariavelExiste(token.getText())){
-                    std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
-                    if(assignmenting){
-                        if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
-                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
-                            assignmenting = false;
-                        };
-                    }
-                    else{
-                        tokenProcessado = token;
-                    }
-                }else{
-                    if(tipoAtual != Tipo::UNDEFINED){
-                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()));
+                case TokenType::IDENTIFIER: {
+                    if(scopeStack.top().verificaVariavelExiste(token.getText())){
+                        std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
+                        if(assignmenting){
+                            if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                                scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
+                                assignmenting = false;
+                            };
+                        }
+                        else{
+                            tokenProcessado = token;
+                        }
                     }else{
-                        throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                        if(tipoAtual != Tipo::UNDEFINED){
+                            scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()));
+                        }else{
+                            throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                        }
                     }
-                }
-                break;
-            }
-
-            case TokenType::NUMBER:
-            case TokenType::FLOAT_NUMBER:
-            case TokenType::LITERAL:{
-                if(assignmenting){
-                    mapTokenTypeToTipo(token.getType());
-                    if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
-                        scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
-                    }
+                    break;
                 }
 
-                break;
+                case TokenType::NUMBER:
+                case TokenType::FLOAT_NUMBER:
+                case TokenType::LITERAL:{
+                    if(assignmenting){
+                        mapTokenTypeToTipo(token.getType());
+                        if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
+                        }
+                    }
+
+                    break;
+                }
+
+                case TokenType::ASSIGNMENT:{
+                    assignmenting = true;
+                    break;
+                }
+                
+                // Outros cases...
             }
-
-            case TokenType::ASSIGNMENT:{
-                assignmenting = true;
-                break;
-            }
-            
-            // Outros cases...
         }
-       }
             
+    }
 
-        }
-
-    };
+};
