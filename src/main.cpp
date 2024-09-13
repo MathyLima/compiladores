@@ -3,22 +3,9 @@
 #include "lexical/Token/Token.h"
 #include "parser/Parser.h"
 
-// int main()
-// {
-//     Scanner sc("source_code.mc");
-//     Token firstToken = sc.nextToken();
-//     std::cout << "First token: " << firstToken.getText() << std::endl;
-
-//     Parser parser(sc);
-//     parser.parseProgram();
-
-//     std::cout << "Compilation Successful" << std::endl;
-
-//     return 0;
-// }
-
 int main()
 {
+    std::vector<Token> tokenStream;
     Scanner sc("source_code.mc");
 
     // Primeiro, imprima todos os tokens gerados pelo scanner
@@ -31,20 +18,14 @@ int main()
         {
             break;
         }
+        tokenStream.push_back(tk);
         std::cout << tk.getText() << " (Type: " << static_cast<int>(tk.getType()) << ")" << std::endl;
+    
+
     }
+    //analisadorSintatico(tokenStream);
 
-    // Reinicialize o scanner para reiniciar a leitura do arquivo
-    sc = Scanner("source_code.mc");
-
-    // Agora, proceda para a análise sintática
-    Token firstToken = sc.nextToken();
-    std::cout << "First token: " << firstToken.getText() << std::endl;
-
-    Parser parser(sc);
-    parser.parseProgram();
-
-    std::cout << "Compilation Successful" << std::endl;
+    std::cout << "Analise lexica foi sucesso" << std::endl;
 
     return 0;
 }

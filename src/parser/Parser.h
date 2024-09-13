@@ -8,6 +8,8 @@ class Parser
 public:
     Parser(Scanner &scanner);
     void parseProgram();
+    bool analiseSintatica(const Token &token);
+    bool parse_program();
 
 private:
     Scanner &scanner;
