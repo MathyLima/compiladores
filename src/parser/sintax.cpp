@@ -258,13 +258,17 @@ private:
                               "Esperado: " + token_type_to_string(expected_type) + " mas encontrado " + current_token.value);
         }
     }
+    bool is_command_start(TokenType type)
+    {
+        return type == IDENTIFIER || type == BEGIN || type == IF || type == WHILE;
+    }
 
     ASTNode *parse_block()
     {
         std::cout << "Estou dentro de parse_block" << std::endl;
         ASTNode *blockNode = new ASTNode("Block");
         blockNode->addChild(parse_var_declaration());
-        blockNode->addChild(parse_declare_subprogram());
+        blockNode->addChild(parse_declare_subprograms());
         blockNode->addChild(parse_compound_statement());
         return blockNode;
     }
@@ -291,24 +295,15 @@ private:
         std::cout << "Estou dentro de parse_var_list_declarations" << std::endl;
         ASTNode *varListNode = new ASTNode("VarList");
 
-        // Primeira lista de identificadores, tipo e ';'
-        varListNode->addChild(parse_identifier_list());
-        varListNode->addChild(expect(COLON)); // Espera o ':'
-        varListNode->addChild(parse_type());
-        varListNode->addChild(expect(SEMICOLON));
-
-        // Continua processando enquanto houver identificadores adicionais
-        while (current_token.type == IDENTIFIER)
+        do
         {
-            ASTNode *additionalVarList = new ASTNode("VarList");
-            additionalVarList->addChild(parse_identifier_list()); // Outra lista_de_identificadores
-            additionalVarList->addChild(expect(COLON));           // Espera ':'
-            additionalVarList->addChild(parse_type());            // Analisa o tipo das variáveis
-            additionalVarList->addChild(expect(SEMICOLON));       // Espera ';'
-            varListNode->addChild(additionalVarList);
-        }
+            varListNode->addChild(parse_identifier_list());
+            varListNode->addChild(expect(COLON));
+            varListNode->addChild(parse_type());
+            varListNode->addChild(expect(SEMICOLON));
+        } while (current_token.type == IDENTIFIER);
 
-        return varListNode; // Retorna o nó da lista de variáveis
+        return varListNode;
     }
 
     ASTNode *parse_identifier_list()
@@ -350,32 +345,28 @@ private:
         return typeNode;
     }
 
-    ASTNode *parse_declare_subprogram()
+    ASTNode *parse_declare_subprograms()
     {
-        std::cout << "Estou dentro de parse_declare_subprogram" << std::endl;
-        ASTNode *subprogramNode = new ASTNode("Subprogram");
-        if (current_token.type == PROCEDURE)
+        std::cout << "Estou dentro de parse_declare_subprograms" << std::endl;
+        ASTNode *subprogramsNode = new ASTNode("SubprogramDeclarations");
+        while (current_token.type == PROCEDURE)
         {
-            subprogramNode->addChild(parse_subprogramas());
+            subprogramsNode->addChild(parse_subprogram());
+            subprogramsNode->addChild(expect(SEMICOLON));
         }
-        return subprogramNode;
+        return subprogramsNode;
     }
 
-    ASTNode *parse_subprogramas()
+    ASTNode *parse_subprogram()
     {
-        std::cout << "Estou dentro de parse_subprogramas" << std::endl;
-        ASTNode *subprogramNode = new ASTNode("Procedure");
+        std::cout << "Estou dentro de parse_subprogram" << std::endl;
+        ASTNode *subprogramNode = new ASTNode("ProcedureDeclaration");
         subprogramNode->addChild(expect(PROCEDURE));
         subprogramNode->addChild(expect(IDENTIFIER));
-        subprogramNode->addChild(expect(LPAREN));
-        subprogramNode->addChild(parse_identifier_list());
-        subprogramNode->addChild(expect(COLON));
-        subprogramNode->addChild(parse_type());
-        subprogramNode->addChild(expect(RPAREN));
-        subprogramNode->addChild(expect(COLON));
-        subprogramNode->addChild(parse_type());
+        subprogramNode->addChild(parse_arguments());
         subprogramNode->addChild(expect(SEMICOLON));
-        subprogramNode->addChild(parse_declare_subprogram());
+        subprogramNode->addChild(parse_var_declaration());
+        subprogramNode->addChild(parse_declare_subprograms());
         subprogramNode->addChild(parse_compound_statement());
         return subprogramNode;
     }
@@ -408,6 +399,12 @@ private:
         while (current_token.type == SEMICOLON)
         {
             cmdListNode->addChild(expect(SEMICOLON)); // Adiciona o ';' à AST
+            // Verifica se o próximo token pode iniciar um comando
+            if (!is_command_start(current_token.type))
+            {
+                // Não há mais comandos, sai do loop
+                break;
+            }
             cmdListNode->addChild(parse_command());
         }
         return cmdListNode;
@@ -424,8 +421,7 @@ private:
             }
             else
             {
-                advance();
-                return new ASTNode("ProcedureActivation");
+                return parse_procedure_activation();
             }
         }
         else if (current_token.type == BEGIN)
@@ -440,7 +436,38 @@ private:
         {
             return parse_while_statement();
         }
-        return nullptr;
+        else
+        {
+            throw SyntaxError("Linha: " + current_token.line +
+                              " Erro de sintaxe: comando inválido");
+        }
+    }
+
+    ASTNode *parse_procedure_activation()
+    {
+        std::cout << "Estou dentro de parse_procedure_activation" << std::endl;
+        ASTNode *procActivationNode = new ASTNode("ProcedureActivation");
+        procActivationNode->addChild(expect(IDENTIFIER));
+
+        if (current_token.type == LPAREN)
+        {
+            advance();
+            procActivationNode->addChild(parse_expression_list());
+            expect(RPAREN);
+        }
+        return procActivationNode;
+    }
+    ASTNode *parse_expression_list()
+    {
+        std::cout << "Estou dentro de parse_expression_list" << std::endl;
+        ASTNode *exprListNode = new ASTNode("ExpressionList");
+        exprListNode->addChild(parse_expression());
+        while (current_token.type == COMMA)
+        {
+            advance();
+            exprListNode->addChild(parse_expression());
+        }
+        return exprListNode;
     }
 
     ASTNode *parse_assignment_statement()
@@ -542,6 +569,43 @@ private:
 
         return termNode;
     }
+    ASTNode *parse_arguments()
+    {
+        std::cout << "Estou dentro de parse_arguments" << std::endl;
+        if (current_token.type == LPAREN)
+        {
+            advance();
+            ASTNode *argsNode = new ASTNode("Arguments");
+            argsNode->addChild(parse_parameter_list());
+            expect(RPAREN);
+            return argsNode;
+        }
+        else
+        {
+            return new ASTNode("NoArguments");
+        }
+    }
+
+    ASTNode *parse_parameter_list()
+    {
+        std::cout << "Estou dentro de parse_parameter_list" << std::endl;
+        ASTNode *paramListNode = new ASTNode("ParameterList");
+        do
+        {
+            paramListNode->addChild(parse_identifier_list());
+            paramListNode->addChild(expect(COLON));
+            paramListNode->addChild(parse_type());
+            if (current_token.type == SEMICOLON)
+            {
+                advance();
+            }
+            else
+            {
+                break;
+            }
+        } while (true);
+        return paramListNode;
+    }
 
     ASTNode *parse_factor()
     {
@@ -560,10 +624,10 @@ private:
 
             if (current_token.type == LPAREN)
             {
-                ASTNode *callNode = new ASTNode("ProcedureCall");
+                ASTNode *callNode = new ASTNode("FunctionCall");
                 callNode->addChild(factorNode);
                 advance();
-                callNode->addChild(parse_expression());
+                callNode->addChild(parse_expression_list());
                 expect(RPAREN);
                 return callNode;
             }
@@ -707,41 +771,18 @@ private:
 int main()
 {
     std::vector<Token> tokens_test = {
-        {KEYWORD, "program-101", "1"},      // program
-        {IDENTIFIER, "AreaRetangulo", "1"}, // AreaRetangulo
-        {DELIMITER, ";", "1"},              // ;
+        {KEYWORD, "program-101", "1"},                // program
+        {IDENTIFIER, "ErrorUndeclaredVariable", "1"}, // ErrorUndeclaredVariable
+        {DELIMITER, ";", "1"},                        // ;
 
-        {KEYWORD, "var-102", "3"},   // var
-        {IDENTIFIER, "base", "4"},   // base
-        {DELIMITER, ",", "4"},       // ,
-        {IDENTIFIER, "altura", "4"}, // altura
-        {DELIMITER, ",", "4"},       // ,
-        {IDENTIFIER, "area", "4"},   // area
-        {DELIMITER, ":", "4"},       // :
-        {KEYWORD, "real-104", "4"},  // real
+        {KEYWORD, "begin-107", "3"}, // begin
+        {IDENTIFIER, "x", "4"},      // x
+        {ASSIGNMENT, ":=", "4"},     // :=
+        {NUMBER, "10", "4"},         // 10
         {DELIMITER, ";", "4"},       // ;
 
-        {KEYWORD, "begin-107", "6"}, // begin
-        {IDENTIFIER, "base", "7"},   // base
-        {ASSIGNMENT, ":=", "7"},     // :=
-        {FLOAT_NUMBER, "5.0", "7"},  // 5.0
-        {DELIMITER, ";", "7"},       // ;
-
-        {IDENTIFIER, "altura", "8"}, // altura
-        {ASSIGNMENT, ":=", "8"},     // :=
-        {FLOAT_NUMBER, "10.0", "8"}, // 10.0
-        {DELIMITER, ";", "8"},       // ;
-
-        {IDENTIFIER, "area", "10"},   // area
-        {ASSIGNMENT, ":=", "10"},     // :=
-        {IDENTIFIER, "base", "10"},   // base
-        {MULT_OPERATOR, "*", "10"},   // *
-        {IDENTIFIER, "altura", "10"}, // altura
-        {DELIMITER, ";", "10"},       // ;
-
-        {KEYWORD, "end-108", "12"}, // end
-        {DELIMITER, ".", "12"}      // .
-
+        {KEYWORD, "end-108", "6"}, // end
+        {DELIMITER, ".", "6"}      // .
     };
 
     Parser parser(tokens_test);
