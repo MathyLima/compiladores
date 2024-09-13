@@ -19,6 +19,7 @@ enum class TokenType
     ASSIGNMENT,
     LITERAL,
     REL_FUNCTION,
+
     NONE,
 };
 

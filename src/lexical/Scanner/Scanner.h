@@ -17,13 +17,16 @@ private:
     int col;
     std::unordered_map<std::string, std::string> reservedWords;
     Token currentToken;
+    std::vector<Token> tokens;
 
 public:
     Scanner(const std::string &source);
     Token nextToken();
     Token getCurrentToken();
+    std::vector<Token> getTokens();
 
-        private : bool isDigit(char c);
+private:
+    bool isDigit(char c);
     bool isLetter(char c);
     bool isSpace(char c);
     bool isRelationalOperator(char c);

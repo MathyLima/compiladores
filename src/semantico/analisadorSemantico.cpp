@@ -230,7 +230,7 @@ public:
         saidaEscopo(); // Saia do escopo da função ao finalizar
     }
 
-    void checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
+    bool checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
         Tipo varTipo = checkVariavel(nome);
         if (scopeStack.top().verificaConstante(nome)) {
             throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
@@ -246,6 +246,8 @@ public:
         }
 
         scopeStack.top().verificaInicializacao(nome);
+
+        return true;
     }
 
 
@@ -294,35 +296,54 @@ public:
     }
 
 
-    void processarBloco(const std::vector<Token> &tokens){
-       Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
-       for(const  auto&token : tokens){
-        switch (token.getType()){
-            case TokenType::IDENTIFIER: {
-                std::stack<TabelaSimbolos> tempStack = scopeStack;
-
-                while (!tempStack.empty()) {
-                    if (tempStack.top().verificaVariavelExiste(token.getText())) {
-                        scopeStack.top().verificaInicializacao(token.getText());
-                        break;
-                    }
-                    tempStack.pop();
-                }
-
-                // Se a variável não foi encontrada, verifica se o tipo é UNDEFINED
-                if (!scopeStack.top().verificaVariavelExiste(token.getText())) {
-                    if (tipoAtual == Tipo::UNDEFINED) {
-                        throw std::runtime_error("Erro: Variável '" + token.getText() + "' não declarada.");
-                    } else {
-                        // Tipo foi definido antes de encontrar o identificador, empilha no escopo
-                        scopeStack.top().inserirVariavel(token.getText(), tipoAtual, "");
-                    }
+    void processarBloco(const std::vector<Token> &tokens) {
+    Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
+    Token tokenProcessado;
+    bool assignmenting = false;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        const auto &token = tokens[i];
+        switch (token.getType()) {
+                 case TokenType::KEYWORD: {
+                if (token.getText() == "int") {
+                    tipoAtual = Tipo::INT;
+                } else if (token.getText() == "float") {
+                    tipoAtual = Tipo::FLOAT;
+                } else if (token.getText() == "bool") {
+                    tipoAtual = Tipo::BOOL;
+                } else if (token.getText() == "string") {
+                    tipoAtual = Tipo::STRING;
                 }
             }
-                break;
-            default:
+
+            case TokenType::IDENTIFIER: {
+                if(scopeStack.top().verificaVariavelExiste(token.getText())){
+                    std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
+                    if(assignmenting){
+                        if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
+                            assignmenting = false;
+                        };
+                    }
+                    else{
+                        tokenProcessado = token;
+                    }
+                }else{
+                    if(tipoAtual != Tipo::UNDEFINED){
+                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()));
+                    }else{
+                        throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                    }
+                }
                 break;
         }
+
+        default:
+                break;
        }
+            
+
+        }
+
     };
+
 };
