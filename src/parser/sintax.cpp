@@ -44,7 +44,9 @@ enum TokenType
     DIVIDE,
     LPAREN,
     RPAREN,
-    EOF_TOKEN
+    EOF_TOKEN,
+    TRUE,
+    FALSE
 };
 
 // Classe para token
@@ -70,7 +72,11 @@ public:
     {
         current_token = tokens[current_token_index];
     }
-
+    // programa → program id;
+    // declarações_variáveis
+    // declarações_de_subprogramas
+    // comando_composto
+    // .
     void parse_program()
     {
         // Init
@@ -90,6 +96,7 @@ private:
 
     void advance()
     {
+        std::cout << current_token.value << '\n';
         if (current_token_index < tokens.size() - 1)
         {
             current_token_index++;
@@ -112,6 +119,7 @@ private:
 
         return current_token;
     }
+
     void convert_to_sintax_type()
     {
         if (current_token.type == KEYWORD || current_token.type == DELIMITER || current_token.type == ADD_OPERATOR || current_token.type == MULT_OPERATOR)
@@ -124,7 +132,6 @@ private:
     {
         if (current_token.type == expected_type)
         {
-            std::cout << current_token.value << '\n';
             advance();
         }
         else
@@ -144,6 +151,7 @@ private:
         parse_compound_statement(); // procedimentos
     }
 
+    // declarações_de_subprogramas → declarações_de_subprogramas declaração_de_subprograma;| ε
     void parse_declare_subprogram()
     {
         std::cout << "parse_declare_subprogram " << current_token.type << "\n";
@@ -153,6 +161,11 @@ private:
         }
     }
 
+    // declaração_de_subprograma →
+    // procedure id argumentos;
+    // declarações_variáveis
+    // declarações_de_subprogramas
+    // comando_composto
     void parse_subprogramas()
     {
         std::cout << "parse_subprogramas " << current_token.type << "\n";
@@ -170,8 +183,8 @@ private:
         parse_compound_statement();
     }
 
-    void
-    parse_var_declaration()
+    // declarações_variáveis → var lista_declarações_variáveis | ε
+    void parse_var_declaration()
     {
         std::cout << "parse_var_declaration" << "\n ";
         if (current_token.type == VAR)
@@ -179,22 +192,33 @@ private:
             advance();
             parse_var_list_declarations(); // avança
 
-            if (peek_next_token().type == IDENTIFIER)
-            {
-                advance();
-                parse_var_list_declarations();
-            }
+            // if (peek_next_token().type == IDENTIFIER)
+            // {
+            //     advance();
+            //     parse_var_list_declarations();
+            // }
         }
     }
 
+    // lista_declarações_variáveis → lista_declarações_variáveis lista_de_identificadores : tipo; | lista_de_identificadores: tipo;
     void parse_var_list_declarations()
     {
+        std::cout << "parse_var_list_declarations" << "\n ";
         parse_identifier_list(); // lista de variaveis
         expect(COLON);           // Dois pontos para atribuir o valor
         parse_type();            // tipo da(s) variaveis
         expect(SEMICOLON);
+
+        while (current_token.type == IDENTIFIER) // Se houver mais declarações (outro identificador)
+        {
+            parse_identifier_list(); // Outra lista_de_identificadores
+            expect(COLON);           // Espera ':'
+            parse_type();            // Analisa o tipo das variáveis
+            expect(SEMICOLON);       // Espera ';'
+        }
     }
 
+    // lista_de_identificadores → id | lista_de_identificadores, id
     void parse_identifier_list()
     {
         std::cout << "parse_identifier_list" << "\n ";
@@ -206,8 +230,10 @@ private:
         }
     }
 
+    // tipo → integer | real | boolean
     void parse_type()
     {
+        std::cout << "parse_type" << "\n ";
         // Pode derivar para integer | real | boolean
         if (current_token.type == INTEGER)
         {
@@ -249,10 +275,38 @@ private:
         parse_command_list();
     }
 
+    // argumentos → (lista_de_parametros) | ε
+    void parse_args()
+    {
+        std::cout << "parse_args" << "\n ";
+
+        if (current_token.type == LPAREN)
+        {
+            parse_list_params();
+            expect(RPAREN);
+        }
+    }
+
+    // lista_de_parametros → lista_de_identificadores : tipo | lista_de_parametros; lista_de_identificadores : tipo
+    void parse_list_params()
+    {
+        std::cout << "parse_list_params" << "\n ";
+        parse_identifier_list();
+        expect(COLON);
+        parse_type();
+        while (current_token.type == SEMICOLON)
+        {
+            advance();
+            expect(COLON);
+            parse_type();
+        }
+    }
+
+    // lista_de_comandos → comando | lista_de_comandos; comando
     void parse_command_list()
     {
         std::cout << "parse_command_list " << "\n";
-        // lista_de_comandos → comando | lista_de_comandos; comando
+
         parse_command(); // Analisa o primeiro comando
 
         // Enquanto houver ';', continue processando comandos
@@ -263,6 +317,7 @@ private:
         }
     }
 
+    // comando → variável : = expressão | ativação_de_procedimento | comando_composto | if expressão then comando parte_else | while expressão do comando
     void parse_command()
     {
         std::cout << "parse_command " << "\n";
@@ -311,11 +366,32 @@ private:
     {
         std::cout << "parse_assignment_statement " << current_token.value << "\n";
         // variável := expressão
-        expect(IDENTIFIER); // Espera a variável
+        parse_var();
         expect(ASSIGNMENT); // Espera o ':='
         parse_expression(); // Analisa a expressão
     }
 
+    // variável → id
+    void parse_var()
+    {
+        std::cout << "parse_var" << "\n ";
+        expect(IDENTIFIER);
+    }
+
+    // ativação_de_procedimento → id | id(lista_de_expressões)
+    void parse_activate_procedure()
+    {
+        std::cout << "parse_activate_procedure" << "\n ";
+        expect(IDENTIFIER);
+        if (current_token.type == LPAREN)
+        {
+            advance();
+            parse_list_expression();
+            expect(RPAREN);
+        }
+    }
+
+    // if expressão then comando parte_else
     void parse_if_statement()
     {
         std::cout << "parse_if_statement " << current_token.value << "\n";
@@ -327,8 +403,10 @@ private:
         parse_else_part();  // Analisa a parte 'else', se houver
     }
 
+    // parte_else → else comando | ε
     void parse_else_part()
     {
+        std::cout << "parse_else_part" << "\n ";
         if (current_token.type == ELSE)
         {
             std::cout << "parse_else_part " << current_token.value << "\n";
@@ -337,6 +415,7 @@ private:
         }
     }
 
+    // while expressão do comando
     void parse_while_statement()
     {
         std::cout << "parse_while_statement " << "\n";
@@ -347,17 +426,54 @@ private:
         parse_command();    // Analisa o comando
     }
 
+    // lista_de_expressões → expressão | lista_de_expressões, expressão
+    void parse_list_expression()
+    {
+        std::cout << "parse_list_expression " << "\n";
+        parse_expression();
+        while (current_token.type == COMMA)
+        {
+            parse_list_expression();
+            parse_expression();
+        }
+    }
+
+    // expressão → expressão_simples | expressão_simples op_relacional expressão_simples
     void parse_expression()
     {
         std::cout << "parse_expression " << "\n";
-        parse_term();
+        parse_simple_expression();
+
+        if (current_token.type == REL_OPERATOR)
+        {
+            advance();
+            parse_simple_expression();
+        }
+    }
+
+    // expressão_simples → termo | sinal termo | expressão_simples op_aditivo termo
+    void parse_simple_expression()
+    {
+        std::cout << "parse_simple_expression " << "\n";
+        if (current_token.type == PLUS || current_token.type == MINUS)
+        {
+            parse_sinal();
+            parse_term();
+        }
+        else
+        {
+            std::cout << "Entrando no  parse_term pelo else" << "\n";
+            parse_term();
+        }
         while (current_token.type == PLUS || current_token.type == MINUS)
         {
+            std::cout << "Entrando no current_token.type while" << current_token.value << "\n";
             advance();
             parse_term();
         }
     }
 
+    // termo → fator | termo op_multiplicativo fator
     void parse_term()
     {
         std::cout << "parse_term " << "\n";
@@ -369,13 +485,25 @@ private:
         }
     }
 
+    // fator → id | id(lista_de_expressões) | num_int | num_real | true | false | (expressão) | not fator
     void parse_factor()
     {
         std::cout << "parse_factor " << "\n";
 
-        if (current_token.type == IDENTIFIER || current_token.type == NUMBER)
+        if (current_token.type == NUMBER || current_token.type == TRUE || current_token.type == FALSE)
         {
             advance();
+        }
+        else if (current_token.type == IDENTIFIER)
+        {
+            advance();
+
+            if (current_token.type == LPAREN)
+            {
+                advance();
+                parse_expression();
+                expect(RPAREN);
+            }
         }
         else if (current_token.type == LPAREN)
         {
@@ -383,13 +511,66 @@ private:
             parse_expression();
             expect(RPAREN);
         }
+        else if (current_token.type == NOT)
+        {
+            advance();
+            parse_factor();
+        }
         else
         {
             throw SyntaxError("Erro de sintaxe: fator inválido");
         }
     }
 
-    std::string token_type_to_string(TokenType type)
+    // sinal → + | -
+    void parse_sinal()
+    {
+        std::cout << "parse_sinal " << "\n";
+        if (current_token.type == PLUS || current_token.type == MINUS)
+        {
+            advance();
+        }
+        else
+        {
+            throw SyntaxError("Linha: " + current_token.line +
+                              " Erro de sintaxe: " +
+                              "Esperado: " + token_type_to_string(ADD_OPERATOR) + " mas encontrado " + current_token.value);
+        }
+    }
+
+    // op_relacional → = | <|> | <= | >= | <>
+    void parse_op_relational()
+    {
+        std::cout << "parse_op_relational " << "\n";
+        if (current_token.type == REL_OPERATOR)
+        {
+            advance();
+        }
+        else
+        {
+            throw SyntaxError("Linha: " + current_token.line +
+                              " Erro de sintaxe: " +
+                              "Esperado: " + token_type_to_string(REL_OPERATOR) + " mas encontrado " + current_token.value);
+        }
+    }
+
+    // op_multiplicativo → * |/ | and
+    // void parse_sinal()
+    // {
+    //     if (current_token.type == MULTIPLY || current_token.type == DIVIDE)
+    //     {
+    //         advance();
+    //     }
+    //     else
+    //     {
+    //         throw SyntaxError("Linha: " + current_token.line +
+    //                           " Erro de sintaxe: " +
+    //                           "Esperado: " + token_type_to_string(MULT_OPERATOR) + " mas encontrado " + current_token.value);
+    //     }
+    // }
+
+    std::string
+    token_type_to_string(TokenType type)
     {
         switch (type)
         {
@@ -425,6 +606,10 @@ private:
             return "+";
         case MINUS:
             return "-";
+        case ADD_OPERATOR:
+            return "+ | -";
+        case MULT_OPERATOR:
+            return "* | / | and";
         case MULTIPLY:
             return "*";
         case DIVIDE:
@@ -437,6 +622,8 @@ private:
             return "EOF";
         case PROCEDURE:
             return "procedure";
+        case REL_OPERATOR:
+            return "= | < | > | <= | >= | <>";
         default:
             return "unknown";
         }
@@ -473,6 +660,10 @@ private:
             return DO;
         else if (tokenStr == "not-114")
             return NOT;
+        else if (tokenStr == "true")
+            return TRUE;
+        else if (tokenStr == "false")
+            return FALSE;
 
         // Delimitators
         else if (tokenStr == ";")
@@ -505,51 +696,39 @@ int main()
     // Tokens simulados de um código Pascal simples: "program exemplo; var x: integer; begin x := 5; end."
     std::vector<Token> tokens_test = {
         {KEYWORD, "program-101", "1"},
-        {IDENTIFIER, "Example", "1"},
+        {IDENTIFIER, "SomaSimples", "1"},
         {DELIMITER, ";", "1"},
         {KEYWORD, "var-102", "2"},
-        {IDENTIFIER, "x", "2"},
-        {DELIMITER, ",", "2"},
-        {IDENTIFIER, "y", "2"},
-        {DELIMITER, ":", "2"},
-        {KEYWORD, "integer-103", "2"},
-        {DELIMITER, ";", "2"},
-        {KEYWORD, "var-102", "3"},
-        {IDENTIFIER, "z", "3"},
+        {IDENTIFIER, "num1", "3"},
+        {DELIMITER, ",", "3"},
+        {IDENTIFIER, "num2", "3"},
+        {DELIMITER, ",", "3"},
+        {IDENTIFIER, "resultado", "3"},
         {DELIMITER, ":", "3"},
-        {KEYWORD, "real-104", "3"},
+        {KEYWORD, "integer-103", "3"},
         {DELIMITER, ";", "3"},
-        {KEYWORD, "begin-107", "4"},
-        {IDENTIFIER, "x", "5"},
-        {ASSIGNMENT, ":=", "5"},
-        {NUMBER, "10", "5"},
-        {DELIMITER, ";", "5"},
-        {IDENTIFIER, "y", "6"},
+        {KEYWORD, "begin-107", "5"},
+        {IDENTIFIER, "num1", "6"},
         {ASSIGNMENT, ":=", "6"},
-        {NUMBER, "20", "6"},
+        {NUMBER, "5", "6"},
         {DELIMITER, ";", "6"},
-        {IDENTIFIER, "z", "7"},
+        {IDENTIFIER, "num2", "7"},
         {ASSIGNMENT, ":=", "7"},
-        {IDENTIFIER, "x", "7"},
-        {ADD_OPERATOR, "+", "7"},
-        {IDENTIFIER, "y", "7"},
-        {MULT_OPERATOR, "/", "7"},
-        {FLOAT_NUMBER, "2.0", "7"},
+        {NUMBER, "10", "7"},
         {DELIMITER, ";", "7"},
         {KEYWORD, "if-109", "8"},
-        {IDENTIFIER, "x", "8"},
-        {REL_OPERATOR, ">", "8"},
-        {IDENTIFIER, "y", "8"},
+        {IDENTIFIER, "num1", "8"},
+        {REL_OPERATOR, "<", "8"},
+        {IDENTIFIER, "num2", "8"},
         {KEYWORD, "then-110", "8"},
-        {IDENTIFIER, "writeln", "9"},
-        {DELIMITER, "(", "9"},
-        {LITERAL, "'x is greater'", "9"},
-        {DELIMITER, ")", "9"},
+        {IDENTIFIER, "resultado", "9"},
+        {ASSIGNMENT, ":=", "9"},
+        {IDENTIFIER, "num1", "9"},
+        {ADD_OPERATOR, "+", "9"},
+        {IDENTIFIER, "num2", "9"},
         {DELIMITER, ";", "9"},
         {KEYWORD, "end-108", "10"},
-        {DELIMITER, ".", "10"}
-
-    };
+        {DELIMITER, ".", "10"}};
 
     Parser parser(tokens_test);
     try
