@@ -7,6 +7,11 @@ TokenType Token::getType() const
     return type;
 }
 
+void Token::setType(TokenType newType)
+{
+    type = newType;
+}
+
 std::string Token::getText() const
 {
     return text;
