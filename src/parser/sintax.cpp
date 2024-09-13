@@ -784,7 +784,8 @@ private:
     }
 };
 
-//// SEMANTICO
+// FUNCAO DE ACHAR VARIAVEL NAO DECLARADA PARA FACILITAR ENTENDIMENTO DE COMO UM CODIGO DO SEMANTICO DEVE MANIPULAR ESSA ESTRUTURA DE DADOS
+// A ENTRADA DE TESTE ESTA COM O ERRO SEMANTICO DE USAR UMA VARIAVEL NAO DECLARADA
 void semantic_analysis(const NodeLevel &nodeLevels)
 {
     std::unordered_set<std::string> declaredVariables; // Conjunto para armazenar variáveis declaradas
@@ -844,9 +845,10 @@ void semantic_analysis(const NodeLevel &nodeLevels)
 
 int main()
 {
+    // ESSE CODIGO POSSUI O ERRO SEMANTICO DE USAR UMA VARIAVEL NAO DECLARADA
     std::vector<Token> tokens_test = {
         {KEYWORD, "program", "1"},                    // program
-        {IDENTIFIER, "ErrorUndeclaredVariable", "1"}, // ErrorUndeclaredVariable
+        {IDENTIFIER, "TestandoS", "1"}, // ErrorUndeclaredVariable
         {DELIMITER, ";", "1"},                        // ;
 
         {KEYWORD, "begin", "3"}, // begin
