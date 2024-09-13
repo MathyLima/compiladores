@@ -290,24 +290,48 @@ public:
     void processarBloco(const std::vector<Token> &tokens) {
     Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
     
-    for (const auto &token : tokens) {
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        const auto &token = tokens[i];
         switch (token.getType()) {
+                 case TokenType::KEYWORD: {
+                if (token.getText() == "int") {
+                    tipoAtual = Tipo::INT;
+                } else if (token.getText() == "float") {
+                    tipoAtual = Tipo::FLOAT;
+                } else if (token.getText() == "bool") {
+                    tipoAtual = Tipo::BOOL;
+                } else if (token.getText() == "string") {
+                    tipoAtual = Tipo::STRING;
+                }
+            }
+
             case TokenType::IDENTIFIER: {
-                if (scopeStack.top().verificaVariavelExiste(token.getText())) {
-                    if (tipoAtual != Tipo::UNDEFINED) {
-                        // Se a variável já existe e o tipoAtual não for undefined, significa que está tentando redeclarar
-                        throw std::runtime_error("Variável já foi declarada");
+                if(i+1 < tokens.size() && tokens[i+1].getType() == TokenType::ASSIGNMENT){
+                    // A variável é seguida por uma atribuição
+                    std::string nomeVariavel = token.getText();
+                    Tipo tipoVariavel = tipoAtual;
+                    if(scopeStack.top().verificaVariavelExiste(nomeVariavel)){
+                        if(tipoAtual!=Tipo::UNDEFINED){
+                            throw std::runtime_error("Variável já foi declarada " + nomeVariavel);                            
+                        }
                     }
-                    // A variável já existe, mas o tipoAtual é indefinido (pode ser uso de uma variável previamente declarada)
-                } else {
-                    // Se a variável não existir e o tipoAtual for definido, empilhe a variável
-                    if (tipoAtual != Tipo::UNDEFINED) {
-                        scopeStack.top().inserirVariavel(token.getText(), tipoAtual);
-                    } else {
-                        throw std::runtime_error("Tentativa de uso de variável não declarada sem tipo");
-                    }
+                    else{
+                            if(tipoAtual!= Tipo::UNDEFINED){
+                                scopeStack.top().inserirVariavel(nomeVariavel,tipoVariavel);
+                            }else{
+                                throw std::runtime_error("Tentativa de uso de variável não declarada sem tipo");
+                            }
+                     }
                 }
                 break;
+            }
+            case TokenType::ASSIGNMENT:{
+            }
+            case TokenType::BEGIN:{
+                entradaEscopo();
+            }
+            case TokenType::END:{
+                saidaEscopo();
             }
             // Outros cases...
         }
