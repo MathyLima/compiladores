@@ -3,7 +3,8 @@
 #include <vector>
 #include <stdexcept>
 #include <stack>
-
+#include <vector>
+#include <unordered_set>
 // Estrutura de token
 enum TokenType
 {
@@ -783,6 +784,64 @@ private:
     }
 };
 
+//// SEMANTICO
+void semantic_analysis(const NodeLevel &nodeLevels)
+{
+    std::unordered_set<std::string> declaredVariables; // Conjunto para armazenar variáveis declaradas
+
+    for (const auto &level : nodeLevels.levels) // Acessando os níveis dentro do NodeLevel
+    {
+        if (level.empty())
+        {
+            continue;
+        }
+
+        // Verifica se é um bloco de declaração de variáveis (VarDeclaration)
+        if (level[0].find("VarDeclaration") != std::string::npos)
+        {
+            for (size_t i = 1; i < level.size(); ++i)
+            {
+                size_t posType = level[i].find("Type: 0"); // Verifica se o token é do tipo IDENTIFIER (Type: 0)
+                if (posType != std::string::npos)
+                {
+                    size_t posValue = level[i].find("Value: ");
+                    if (posValue != std::string::npos)
+                    {
+                        std::string variableName = level[i].substr(posValue + 7); // 7 é o tamanho de "Value: "
+                        declaredVariables.insert(variableName);
+                    }
+                }
+            }
+        }
+
+        // Verifica o uso de variáveis em AssignmentStatement, Expression, ou Term
+        if (level[0].find("AssignmentStatement") != std::string::npos ||
+            level[0].find("Expression") != std::string::npos ||
+            level[0].find("Term") != std::string::npos)
+        {
+            for (size_t i = 1; i < level.size(); ++i)
+            {
+                size_t posType = level[i].find("Type: 0"); // Verifica se o token é do tipo IDENTIFIER (Type: 0)
+                if (posType != std::string::npos)
+                {
+                    size_t posValue = level[i].find("Value: ");
+                    if (posValue != std::string::npos)
+                    {
+                        std::string variableName = level[i].substr(posValue + 7);
+                        if (declaredVariables.find(variableName) == declaredVariables.end())
+                        {
+                            // Se a variável não foi declarada, reporta o erro
+                            size_t posLine = level[i].find("Line: ");
+                            std::string lineNumber = (posLine != std::string::npos) ? level[i].substr(posLine + 6) : "desconhecida";
+                            std::cerr << "Erro semântico na linha " << lineNumber << ": Variável '" << variableName << "' utilizada sem ter sido declarada.\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main()
 {
     std::vector<Token> tokens_test = {
@@ -810,6 +869,8 @@ int main()
         build_node_levels(ast, nodeLevels); // Constrói o array de arrays
         std::cout << "\nConteúdo do array de arrays:" << std::endl;
         nodeLevels.printLevels(); // Imprime os níveis de nós
+
+        semantic_analysis(nodeLevels);
     }
     catch (const SyntaxError &e)
     {
