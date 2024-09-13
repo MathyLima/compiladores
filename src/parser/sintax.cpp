@@ -58,7 +58,7 @@ struct Token
     std::string line;
 };
 
-// Para alterar o que vai pro nó, altere a a Struct ASTNode  e a função build_node_levels
+// Para alterar o que vai pro nó, altere a a Struct ASTNode e a função build_node_levels
 struct NodeLevel
 {
     std::vector<std::vector<std::string>> levels;
@@ -85,6 +85,7 @@ struct NodeLevel
         }
     }
 };
+
 // Exceção para erros de sintaxe
 class SyntaxError : public std::runtime_error
 {
@@ -92,7 +93,7 @@ public:
     SyntaxError(const std::string &msg) : std::runtime_error(msg) {}
 };
 
-// Estrutura de nó da AST (ALTERE AQUI PRA MUDAR O NÓ)
+// Estrutura de nó da AST
 struct ASTNode
 {
     std::string value;
@@ -136,7 +137,7 @@ void print_ast(ASTNode *node, std::stack<std::string> &nodeStack, int indent = 0
         print_ast(child, nodeStack, indent + 1); // Recursivamente imprime os filhos deste nó
     }
 }
-// PARA ALTERAR O QUE VAI PARA O NÓ ALTERE ESSA FUNÇÃO ABAIXO E A STRUCT ASTNode
+
 void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0)
 {
     if (!node)
@@ -146,10 +147,11 @@ void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0)
 
     // Verifica se o nó é um não-terminal
     bool isNonTerminal = node->value == "Program" || node->value == "Block" ||
-                         node->value == "VarDeclaration" || node->value == "Subprogram" ||
-                         node->value == "CompoundStatement" || node->value == "CommandList" ||
-                         node->value == "AssignmentStatement" || node->value == "Expression" ||
-                         node->value == "SimpleExpression" || node->value == "Term";
+                         node->value == "VarDeclaration" || node->value == "VarList" ||
+                         node->value == "Subprogram" || node->value == "CompoundStatement" ||
+                         node->value == "CommandList" || node->value == "AssignmentStatement" ||
+                         node->value == "Expression" || node->value == "SimpleExpression" ||
+                         node->value == "Term" || node->value == "IdentifierList";
 
     // Adiciona o nó atual (pai) como o primeiro elemento do nível somente se for um não-terminal
     if (isNonTerminal)
@@ -208,6 +210,7 @@ private:
 
     void advance()
     {
+        std::cout << "Avançando token: " << current_token.value << '\n';
         if (current_token_index < tokens.size() - 1)
         {
             current_token_index++;
@@ -258,6 +261,7 @@ private:
 
     ASTNode *parse_block()
     {
+        std::cout << "Estou dentro de parse_block" << std::endl;
         ASTNode *blockNode = new ASTNode("Block");
         blockNode->addChild(parse_var_declaration());
         blockNode->addChild(parse_declare_subprogram());
@@ -267,14 +271,15 @@ private:
 
     ASTNode *parse_var_declaration()
     {
+        std::cout << "Estou dentro de parse_var_declaration" << std::endl;
         ASTNode *varDeclNode = new ASTNode("VarDeclaration");
         if (current_token.type == VAR)
         {
-            advance();
+            varDeclNode->addChild(expect(VAR)); // Adiciona 'var' à AST
             varDeclNode->addChild(parse_var_list_declarations());
-            if (peek_next_token().type == IDENTIFIER)
+            // Continuação de varList caso tenha mais identificadores
+            while (current_token.type == IDENTIFIER)
             {
-                advance();
                 varDeclNode->addChild(parse_var_list_declarations());
             }
         }
@@ -283,44 +288,32 @@ private:
 
     ASTNode *parse_var_list_declarations()
     {
+        std::cout << "Estou dentro de parse_var_list_declarations" << std::endl;
         ASTNode *varListNode = new ASTNode("VarList");
-        varListNode->addChild(expect(IDENTIFIER));
-        varListNode->addChild(expect(COLON));
+
+        // Primeira lista de identificadores, tipo e ';'
+        varListNode->addChild(parse_identifier_list());
+        varListNode->addChild(expect(COLON)); // Espera o ':'
         varListNode->addChild(parse_type());
         varListNode->addChild(expect(SEMICOLON));
-        return varListNode;
-    }
 
-    ASTNode *parse_declare_subprogram()
-    {
-        ASTNode *subprogramNode = new ASTNode("Subprogram");
-        if (current_token.type == PROCEDURE)
+        // Continua processando enquanto houver identificadores adicionais
+        while (current_token.type == IDENTIFIER)
         {
-            subprogramNode->addChild(parse_subprogramas());
+            ASTNode *additionalVarList = new ASTNode("VarList");
+            additionalVarList->addChild(parse_identifier_list()); // Outra lista_de_identificadores
+            additionalVarList->addChild(expect(COLON));           // Espera ':'
+            additionalVarList->addChild(parse_type());            // Analisa o tipo das variáveis
+            additionalVarList->addChild(expect(SEMICOLON));       // Espera ';'
+            varListNode->addChild(additionalVarList);
         }
-        return subprogramNode;
-    }
 
-    ASTNode *parse_subprogramas()
-    {
-        ASTNode *subprogramNode = new ASTNode("Procedure");
-        subprogramNode->addChild(expect(PROCEDURE));
-        subprogramNode->addChild(expect(IDENTIFIER));
-        subprogramNode->addChild(expect(LPAREN));
-        subprogramNode->addChild(parse_identifier_list());
-        subprogramNode->addChild(expect(COLON));
-        subprogramNode->addChild(parse_type());
-        subprogramNode->addChild(expect(RPAREN));
-        subprogramNode->addChild(expect(COLON));
-        subprogramNode->addChild(parse_type());
-        subprogramNode->addChild(expect(SEMICOLON));
-        subprogramNode->addChild(parse_declare_subprogram());
-        subprogramNode->addChild(parse_compound_statement());
-        return subprogramNode;
+        return varListNode; // Retorna o nó da lista de variáveis
     }
 
     ASTNode *parse_identifier_list()
     {
+        std::cout << "Estou dentro de parse_identifier_list" << std::endl;
         ASTNode *idListNode = new ASTNode("IdentifierList");
         idListNode->addChild(expect(IDENTIFIER));
         while (current_token.type == COMMA)
@@ -333,6 +326,7 @@ private:
 
     ASTNode *parse_type()
     {
+        std::cout << "Estou dentro de parse_type" << std::endl;
         ASTNode *typeNode = nullptr;
         if (current_token.type == INTEGER)
         {
@@ -356,8 +350,39 @@ private:
         return typeNode;
     }
 
+    ASTNode *parse_declare_subprogram()
+    {
+        std::cout << "Estou dentro de parse_declare_subprogram" << std::endl;
+        ASTNode *subprogramNode = new ASTNode("Subprogram");
+        if (current_token.type == PROCEDURE)
+        {
+            subprogramNode->addChild(parse_subprogramas());
+        }
+        return subprogramNode;
+    }
+
+    ASTNode *parse_subprogramas()
+    {
+        std::cout << "Estou dentro de parse_subprogramas" << std::endl;
+        ASTNode *subprogramNode = new ASTNode("Procedure");
+        subprogramNode->addChild(expect(PROCEDURE));
+        subprogramNode->addChild(expect(IDENTIFIER));
+        subprogramNode->addChild(expect(LPAREN));
+        subprogramNode->addChild(parse_identifier_list());
+        subprogramNode->addChild(expect(COLON));
+        subprogramNode->addChild(parse_type());
+        subprogramNode->addChild(expect(RPAREN));
+        subprogramNode->addChild(expect(COLON));
+        subprogramNode->addChild(parse_type());
+        subprogramNode->addChild(expect(SEMICOLON));
+        subprogramNode->addChild(parse_declare_subprogram());
+        subprogramNode->addChild(parse_compound_statement());
+        return subprogramNode;
+    }
+
     ASTNode *parse_compound_statement()
     {
+        std::cout << "Estou dentro de parse_compound_statement" << std::endl;
         ASTNode *compoundNode = new ASTNode("CompoundStatement");
         compoundNode->addChild(expect(BEGIN));
         compoundNode->addChild(parse_optional_commands());
@@ -367,6 +392,7 @@ private:
 
     ASTNode *parse_optional_commands()
     {
+        std::cout << "Estou dentro de parse_optional_commands" << std::endl;
         if (current_token.type == END)
         {
             return new ASTNode("Empty");
@@ -376,11 +402,12 @@ private:
 
     ASTNode *parse_command_list()
     {
+        std::cout << "Estou dentro de parse_command_list" << std::endl;
         ASTNode *cmdListNode = new ASTNode("CommandList");
         cmdListNode->addChild(parse_command());
         while (current_token.type == SEMICOLON)
         {
-            advance();
+            cmdListNode->addChild(expect(SEMICOLON)); // Adiciona o ';' à AST
             cmdListNode->addChild(parse_command());
         }
         return cmdListNode;
@@ -388,6 +415,7 @@ private:
 
     ASTNode *parse_command()
     {
+        std::cout << "Estou dentro de parse_command" << std::endl;
         if (current_token.type == IDENTIFIER)
         {
             if (peek_next_token().type == ASSIGNMENT)
@@ -417,6 +445,7 @@ private:
 
     ASTNode *parse_assignment_statement()
     {
+        std::cout << "Estou dentro de parse_assignment_statement" << std::endl;
         ASTNode *assignNode = new ASTNode("AssignmentStatement");
         assignNode->addChild(expect(IDENTIFIER));
         assignNode->addChild(expect(ASSIGNMENT));
@@ -426,6 +455,7 @@ private:
 
     ASTNode *parse_if_statement()
     {
+        std::cout << "Estou dentro de parse_if_statement" << std::endl;
         ASTNode *ifNode = new ASTNode("IfStatement");
         ifNode->addChild(expect(IF));
         ifNode->addChild(parse_expression());
@@ -437,6 +467,7 @@ private:
 
     ASTNode *parse_else_part()
     {
+        std::cout << "Estou dentro de parse_else_part" << std::endl;
         if (current_token.type == ELSE)
         {
             return expect(ELSE);
@@ -446,6 +477,7 @@ private:
 
     ASTNode *parse_while_statement()
     {
+        std::cout << "Estou dentro de parse_while_statement" << std::endl;
         ASTNode *whileNode = new ASTNode("WhileStatement");
         whileNode->addChild(expect(WHILE));
         whileNode->addChild(parse_expression());
@@ -456,6 +488,7 @@ private:
 
     ASTNode *parse_expression()
     {
+        std::cout << "Estou dentro de parse_expression" << std::endl;
         ASTNode *exprNode = new ASTNode("Expression");
         exprNode->addChild(parse_simple_expression());
         if (current_token.type == REL_OPERATOR)
@@ -470,6 +503,7 @@ private:
 
     ASTNode *parse_simple_expression()
     {
+        std::cout << "Estou dentro de parse_simple_expression" << std::endl;
         ASTNode *simpleExprNode = new ASTNode("SimpleExpression");
         if (current_token.type == PLUS || current_token.type == MINUS)
         {
@@ -491,27 +525,49 @@ private:
         }
         return simpleExprNode;
     }
-
     ASTNode *parse_term()
     {
+        std::cout << "Estou dentro de parse_term" << std::endl;
         ASTNode *termNode = new ASTNode("Term");
         termNode->addChild(parse_factor());
+
         while (current_token.type == MULTIPLY || current_token.type == DIVIDE)
         {
-            ASTNode *multOpNode = new ASTNode(current_token.value);
-            advance();
-            multOpNode->addChild(parse_factor());
-            termNode->addChild(multOpNode);
+            ASTNode *opNode = new ASTNode(current_token.value); // Cria um nó para o operador
+            advance();                                          // Avança para o próximo token (o próximo fator)
+             termNode->addChild(opNode);                         // Adiciona o operador (com o fator) ao nó Term
+            termNode->addChild(parse_factor());                   // Adiciona o fator como filho do operador
+           
         }
+
         return termNode;
     }
 
     ASTNode *parse_factor()
     {
-        if (current_token.type == IDENTIFIER || current_token.type == NUMBER || current_token.type == TRUE || current_token.type == FALSE)
+        std::cout << "Estou dentro de parse_factor" << std::endl;
+
+        if (current_token.type == NUMBER || current_token.type == FLOAT_NUMBER || current_token.type == TRUE || current_token.type == FALSE)
         {
             ASTNode *factorNode = new ASTNode(current_token.value);
             advance();
+            return factorNode;
+        }
+        else if (current_token.type == IDENTIFIER)
+        {
+            ASTNode *factorNode = new ASTNode(current_token.value);
+            advance();
+
+            if (current_token.type == LPAREN)
+            {
+                ASTNode *callNode = new ASTNode("ProcedureCall");
+                callNode->addChild(factorNode);
+                advance();
+                callNode->addChild(parse_expression());
+                expect(RPAREN);
+                return callNode;
+            }
+
             return factorNode;
         }
         else if (current_token.type == LPAREN)
@@ -528,7 +584,10 @@ private:
             notNode->addChild(parse_factor());
             return notNode;
         }
-        throw SyntaxError("Erro de sintaxe: fator inválido");
+        else
+        {
+            throw SyntaxError("Erro de sintaxe: fator inválido");
+        }
     }
 
     std::string token_type_to_string(TokenType type)
@@ -648,16 +707,42 @@ private:
 int main()
 {
     std::vector<Token> tokens_test = {
-        {KEYWORD, "program-101", "1"},
-        {IDENTIFIER, "Test", "1"},
-        {DELIMITER, ";", "1"},
-        {KEYWORD, "begin-107", "2"},
-        {IDENTIFIER, "a", "3"},
-        {ASSIGNMENT, ":=", "3"},
-        {NUMBER, "1", "3"},
-        {DELIMITER, ";", "3"},
-        {KEYWORD, "end-108", "4"},
-        {DELIMITER, ".", "4"}};
+        {KEYWORD, "program-101", "1"},      // program
+        {IDENTIFIER, "AreaRetangulo", "1"}, // AreaRetangulo
+        {DELIMITER, ";", "1"},              // ;
+
+        {KEYWORD, "var-102", "3"},   // var
+        {IDENTIFIER, "base", "4"},   // base
+        {DELIMITER, ",", "4"},       // ,
+        {IDENTIFIER, "altura", "4"}, // altura
+        {DELIMITER, ",", "4"},       // ,
+        {IDENTIFIER, "area", "4"},   // area
+        {DELIMITER, ":", "4"},       // :
+        {KEYWORD, "real-104", "4"},  // real
+        {DELIMITER, ";", "4"},       // ;
+
+        {KEYWORD, "begin-107", "6"}, // begin
+        {IDENTIFIER, "base", "7"},   // base
+        {ASSIGNMENT, ":=", "7"},     // :=
+        {FLOAT_NUMBER, "5.0", "7"},  // 5.0
+        {DELIMITER, ";", "7"},       // ;
+
+        {IDENTIFIER, "altura", "8"}, // altura
+        {ASSIGNMENT, ":=", "8"},     // :=
+        {FLOAT_NUMBER, "10.0", "8"}, // 10.0
+        {DELIMITER, ";", "8"},       // ;
+
+        {IDENTIFIER, "area", "10"},   // area
+        {ASSIGNMENT, ":=", "10"},     // :=
+        {IDENTIFIER, "base", "10"},   // base
+        {MULT_OPERATOR, "*", "10"},   // *
+        {IDENTIFIER, "altura", "10"}, // altura
+        {DELIMITER, ";", "10"},       // ;
+
+        {KEYWORD, "end-108", "12"}, // end
+        {DELIMITER, ".", "12"}      // .
+
+    };
 
     Parser parser(tokens_test);
     try
@@ -669,16 +754,6 @@ int main()
         build_node_levels(ast, nodeLevels); // Constrói o array de arrays
         std::cout << "\nConteúdo do array de arrays:" << std::endl;
         nodeLevels.printLevels(); // Imprime os níveis de nós
-       
-       
-        // std::stack<std::string> nodeStack;
-        // print_ast(ast, nodeStack); // Passa a pilha para a função
-        // std::cout << "\nConteúdo da pilha (em ordem de empilhamento):" << std::endl;
-        // while (!nodeStack.empty())
-        // {
-        //     std::cout << nodeStack.top() << std::endl;
-        //     nodeStack.pop();
-        // }
     }
     catch (const SyntaxError &e)
     {
