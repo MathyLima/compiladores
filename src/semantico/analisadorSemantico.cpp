@@ -303,7 +303,7 @@ public:
     for (size_t i = 0; i < tokens.size(); ++i) {
         const auto &token = tokens[i];
         switch (token.getType()) {
-                 case TokenType::KEYWORD: {
+            case TokenType::KEYWORD: {
                 if (token.getText() == "int") {
                     tipoAtual = Tipo::INT;
                 } else if (token.getText() == "float") {
@@ -312,7 +312,14 @@ public:
                     tipoAtual = Tipo::BOOL;
                 } else if (token.getText() == "string") {
                     tipoAtual = Tipo::STRING;
+                }else if(token.getText() == "begin"){
+                    entradaEscopo();
+                }else if(token.getText() == "end"){
+                    saidaEscopo();
                 }
+
+            break;
+                
             }
 
             case TokenType::IDENTIFIER: {
@@ -335,15 +342,31 @@ public:
                     }
                 }
                 break;
-        }
+            }
 
-        default:
+            case TokenType::NUMBER:
+            case TokenType::FLOAT_NUMBER:
+            case TokenType::LITERAL:{
+                if(assignmenting){
+                    mapTokenTypeToTipo(token.getType());
+                    if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
+                        scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
+                    }
+                }
+
                 break;
+            }
+
+            case TokenType::ASSIGNMENT:{
+                assignmenting = true;
+                break;
+            }
+            
+            // Outros cases...
+        }
        }
             
 
         }
 
     };
-
-};
