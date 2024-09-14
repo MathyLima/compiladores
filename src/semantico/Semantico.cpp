@@ -283,10 +283,23 @@ public:
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
-                
+                case INTEGER:
+                case REAL:
+                case BOOLEAN:{
+                    tipoAtual = token.getType();
+                    break;
+                }
 
+                case BEGIN:{
+                    entradaEscopo();
+                    break;
+                }
+                case END:{
+                    saidaEscopo();
+                    break;
+                }
 
-                case TokenType::IDENTIFIER: {
+                case IDENTIFIER: {
                     if(scopeStack.top().verificaVariavelExiste(token.getText())){
                         std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
                         if(assignmenting){
@@ -302,7 +315,7 @@ public:
                             tokenProcessado = token;
                         }
                     }else{
-                        if(tipoAtual != TokenType::NONE){
+                        if(tipoAtual != NONE){
                             scopeStack.top().inserirVariavel(token.getText(),token.getType());
                         }else{
                             throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
@@ -312,9 +325,9 @@ public:
                     break;
                 }
 
-                case TokenType::NUMBER:
-                case TokenType::FLOAT_NUMBER:
-                case TokenType::LITERAL:{
+                case NUMBER:
+                case FLOAT_NUMBER:
+                case LITERAL:{
                     if(assignmenting){
                         if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
                             scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
@@ -324,7 +337,7 @@ public:
                     break;
                 }
 
-                case TokenType::ASSIGNMENT:{
+                case ASSIGNMENT:{
                     assignmenting = true;
                     break;
                 }
