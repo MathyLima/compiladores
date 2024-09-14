@@ -52,9 +52,7 @@ bool verificarTipoValor(Tipo tipo, const std::string &valor) {
                 return false; // Tipo não suportado
             }
             return true;
-        } catch (const std::exception&) {
-            return false;
-        } catch (const std::out_of_range&) {
+        } catch (...) {
             return false;
         }
 }
@@ -379,6 +377,8 @@ public:
                     assignmenting = true;
                     break;
                 }
+
+                
             }
         }       
     }
