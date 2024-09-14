@@ -5,54 +5,39 @@
 #include <vector>
 #include <stdexcept>
 #include "../lexical/Token/Token.h"
+#include "Semantico.h"
 
 
-enum class Tipo {
-    INT,
-    FLOAT,
-    BOOL,
-    STRING,
-    VOID,
-    UNDEFINED
-};
-
-struct Simbolo
-{
-    Tipo tipo;
-    bool inicializado;
-    bool constante;
-    std::string valor;
-};
 
 
 struct Funcao
 {
-    Tipo tipoRetorno;
-    std::vector<Tipo> parametros;
+    TokenType tipoRetorno;
+    std::vector<TokenType> parametros;
 };
 
 struct Procedimento
 {
-    std::vector<Tipo> parametros;
+    std::vector<TokenType> parametros;
 };
 
-bool verificarTipoValor(Tipo tipo, const std::string &valor) {
+bool verificarTipoValor(TokenType tipo, const std::string &valor) {
     try {
-        if (tipo == Tipo::INT) {
+        if (tipo == TokenType::NUMBER) {
             std::stoi(valor); // Tenta converter para inteiro
-        } else if (tipo == Tipo::FLOAT) {
+        } else if (tipo == TokenType::FLOAT_NUMBER) {
             std::stof(valor); // Tenta converter para float
-        } else if (tipo == Tipo::BOOL) {
+        } else if (tipo == TokenType::BOOLEAN) {
             if (valor != "true" && valor != "false") {
                 throw std::runtime_error("Valor booleano inválido: " + valor);
             }
-            } else if (tipo == Tipo::STRING) {
+            } else if (tipo == TokenType::LITERAL) {
                     // Strings são sempre válidas
             } else {
                 return false; // Tipo não suportado
             }
             return true;
-        } catch (const std::exception&) {
+        } catch (...) {
             return false;
         }
 }
@@ -65,7 +50,7 @@ class TabelaSimbolos{
         std::unordered_map<std::string,Procedimento> procedimentos;
     public:
         //insere uma varivel com valor opcional na tabela
-        void inserirVariavel(const std::string &nome, Tipo tipo, const std::string &valor = "", bool constante = false) {
+        void inserirVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "", bool constante = false) {
             if (constante && !verificarTipoValor(tipo, valor)) {
                 throw std::runtime_error("Erro: Valor '" + valor + "' não corresponde ao tipo da constante '" + nome + "'.");
             }
@@ -73,11 +58,17 @@ class TabelaSimbolos{
         }
 
 
-        void inserirFuncao(const std::string &nome, Tipo tipoRetorno, const std::vector<Tipo> &parametros){
+        void inserirFuncao(const std::string &nome, TokenType tipoRetorno, const std::vector<TokenType> &parametros){
+            if (verificaFuncaoExiste(nome)) {
+                throw std::runtime_error("Erro: Função com o nome '" + nome + "' já existe.");
+            }
             funcoes[nome] = {tipoRetorno,parametros};
         }
 
-        void inserirProcedimento(const std::string &nome, const std::vector<Tipo> &parametros){
+        void inserirProcedimento(const std::string &nome, const std::vector<TokenType> &parametros){
+            if (verificaProcedimentoExiste(nome)) {
+                throw std::runtime_error("Erro: Procedimento com o nome '" + nome + "' já existe.");
+            }
             procedimentos[nome] = {parametros};
         }
 
@@ -94,8 +85,10 @@ class TabelaSimbolos{
         }
 
         bool verificaConstante(const std::string &nome) {
-            if (verificaVariavelExiste(nome))
+            if (verificaVariavelExiste(nome)){
                 return variaveis[nome].constante;
+            }
+            throw std::runtime_error("Erro: Variável não encontrada: " + nome);
         }
 
         void verificaInicializacao(const std::string &nome) {
@@ -106,11 +99,11 @@ class TabelaSimbolos{
 
 
          // Obter tipo da variável
-        Tipo getTipoVariavel(const std::string &nome) {
+        TokenType getTipoVariavel(const std::string &nome) {
             if (verificaVariavelExiste(nome)) {
                 return variaveis[nome].tipo;
             }
-            return Tipo::UNDEFINED;
+            return TokenType::NONE;
         }
 
         // Obter valor da variável
@@ -160,14 +153,6 @@ class AnalisadorSemantico {
 private:
     std::stack<TabelaSimbolos> scopeStack;
     
-    Tipo mapTokenTypeToTipo(TokenType tokenType) {
-        switch (tokenType) {
-            case TokenType::NUMBER: return Tipo::INT;
-            case TokenType::FLOAT_NUMBER: return Tipo::FLOAT;
-            case TokenType::IDENTIFIER: return Tipo::STRING;
-            default: return Tipo::UNDEFINED;
-        }
-    }
 
 public:
     AnalisadorSemantico() {
@@ -180,13 +165,17 @@ public:
 
     void saidaEscopo() {
         if (!scopeStack.empty()) {
-            scopeStack.pop();
+            if (scopeStack.size() == 1) {
+                throw std::runtime_error("Erro: Tentativa de sair de escopo global sem um 'begin' correspondente");
+            } else {
+                scopeStack.pop();
+            }
         } else {
             throw std::runtime_error("Erro: Tentativa de sair de um escopo inexistente");
         }
     }
 
-    void declararVariavel(const std::string &nome, Tipo tipo, const std::string &valor = "") {
+    void declararVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "") {
         if (scopeStack.top().verificaVariavelExiste(nome)) {
             throw std::runtime_error("Erro: Variável já declarada no escopo atual: " + nome);
         } else {
@@ -194,7 +183,7 @@ public:
         }
     }
 
-    Tipo checkVariavel(const std::string &nome) {
+    TokenType checkVariavel(const std::string &nome) {
         std::stack<TabelaSimbolos> tempStack = scopeStack;
 
         while (!tempStack.empty()) {
@@ -207,12 +196,11 @@ public:
         throw std::runtime_error("Erro: Variável '" + nome + "' não declarada: ");
     }
 
-    void declararFuncao(const std::string &nome, Tipo tipoRetorno, std::vector<Tipo> &parametros) {
+    void declararFuncao(const std::string &nome, TokenType tipoRetorno, std::vector<TokenType> &parametros) {
         if (scopeStack.top().verificaFuncaoExiste(nome)) {
             throw std::runtime_error("Erro: Função já declarada no escopo atual: " + nome);
         } else {
-            Tipo info = {tipoRetorno};
-            scopeStack.top().inserirFuncao(nome, info,parametros);
+            scopeStack.top().inserirFuncao(nome, tipoRetorno, parametros);
             entradaEscopo(); // Novo escopo para as variáveis da função
         }
     }
@@ -221,17 +209,15 @@ public:
         saidaEscopo(); // Saia do escopo da função ao finalizar
     }
 
-    bool checkAtribuicao(const std::string &nome, Tipo valorTipo, const std::string &valor) {
-        Tipo varTipo = checkVariavel(nome);
+    bool checkAtribuicao(const std::string &nome, TokenType valorTipo, const std::string &valor) {
+        TokenType varTipo = checkVariavel(nome);
         if (scopeStack.top().verificaConstante(nome)) {
             throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
         }
         if (varTipo != valorTipo) {
             throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
                                      "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                     ", mas encontrou tipo: " + std::to_string(static_cast<int>(valorTipo)));
-                                    "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                    ", Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo));
+                                     ". Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
         // Verifica se o valor atribuído é compatível com o tipo da variável
         if (!verificarTipoValor(valorTipo, valor)) {
@@ -246,15 +232,15 @@ public:
 
 
         // Função para verificar operações relacionais e lógicas
-    bool checkOperacoes(Tipo tipo1, Tipo tipo2, Tipo valorTipo, const std::string &operador) {
+    bool checkOperacoes(TokenType tipo1, TokenType tipo2, TokenType valorTipo, const std::string &operador) {
     
         // Operações aritméticas numéricas
         if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
-            if (tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: INT || 
-            tipo1 == Tipo::INT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
-            tipo1 == Tipo::INT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT ||
-            tipo1 == Tipo::FLOAT && tipo2 == Tipo::INT && valorTipo == Tipo:: FLOAT || 
-            tipo1 == Tipo::FLOAT && tipo2 == Tipo::FLOAT && valorTipo == Tipo:: FLOAT)
+            if (tipo1 == TokenType::NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: NUMBER || 
+            tipo1 == TokenType::NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: FLOAT_NUMBER || 
+            tipo1 == TokenType::NUMBER && tipo2 == TokenType::FLOAT_NUMBER && valorTipo == TokenType:: FLOAT_NUMBER ||
+            tipo1 == TokenType::FLOAT_NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: FLOAT_NUMBER || 
+            tipo1 == TokenType::FLOAT_NUMBER && tipo2 == TokenType::FLOAT_NUMBER && valorTipo == TokenType:: FLOAT_NUMBER)
             return true;
         else{
             throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
@@ -265,7 +251,7 @@ public:
 
         // Operadores lógicos booleanos
         if (operador == "&&" || operador == "||" || operador == "and" || operador == "or") {
-            if (tipo1 == Tipo::BOOL && tipo2 == Tipo::BOOL) {
+            if (tipo1 == TokenType::BOOLEAN && tipo2 == TokenType::BOOLEAN) {
                 return true;
             } else {
                 throw std::runtime_error("Erro: Operação lógica inválida entre tipos " +
@@ -290,76 +276,61 @@ public:
 
 
     void processarBloco(const std::vector<Token> &tokens) {
-    Tipo tipoAtual = Tipo::UNDEFINED; // Tipo atual da variável (se definido por uma KEYWORD)
-    Token tokenProcessado;
-    bool assignmenting = false;
-    for (size_t i = 0; i < tokens.size(); ++i) {
-        const auto &token = tokens[i];
-        switch (token.getType()) {
-            case TokenType::KEYWORD: {
-                if (token.getText() == "int") {
-                    tipoAtual = Tipo::INT;
-                } else if (token.getText() == "float") {
-                    tipoAtual = Tipo::FLOAT;
-                } else if (token.getText() == "bool") {
-                    tipoAtual = Tipo::BOOL;
-                } else if (token.getText() == "string") {
-                    tipoAtual = Tipo::STRING;
-                }else if(token.getText() == "begin"){
-                    entradaEscopo();
-                }else if(token.getText() == "end"){
-                    saidaEscopo();
+        TokenType tipoAtual = NONE; // Tipo atual da variável (se definido por uma KEYWORD)
+        bool constante = false;
+        Token tokenProcessado;
+        bool assignmenting = false;
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            const auto &token = tokens[i];
+            switch (token.getType()) {
+                
+
+
+                case TokenType::IDENTIFIER: {
+                    if(scopeStack.top().verificaVariavelExiste(token.getText())){
+                        std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
+                        if(assignmenting){
+                            if (scopeStack.top().verificaConstante(token.getText())) {
+                                throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
+                            }
+                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                                scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
+                                assignmenting = false;
+                            };
+                        }
+                        else{
+                            tokenProcessado = token;
+                        }
+                    }else{
+                        if(tipoAtual != TokenType::NONE){
+                            scopeStack.top().inserirVariavel(token.getText(),token.getType());
+                        }else{
+                            throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                        }
+                    }
+                    constante = false;
+                    break;
                 }
-            break;
+
+                case TokenType::NUMBER:
+                case TokenType::FLOAT_NUMBER:
+                case TokenType::LITERAL:{
+                    if(assignmenting){
+                        if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
+                        }
+                    }
+
+                    break;
+                }
+
+                case TokenType::ASSIGNMENT:{
+                    assignmenting = true;
+                    break;
+                }
+
                 
             }
-
-            case TokenType::IDENTIFIER: {
-                if(scopeStack.top().verificaVariavelExiste(token.getText())){
-                    std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
-                    if(assignmenting){
-                        if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
-                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
-                            assignmenting = false;
-                        };
-                    }
-                    
-                    else{
-                        tokenProcessado = token;
-                    }
-                }else{
-                    if(tipoAtual != Tipo::UNDEFINED){
-                        scopeStack.top().inserirVariavel(token.getText(),mapTokenTypeToTipo(token.getType()));
-                    }else{
-                        throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
-                    }
-                }
-                break;
-            }
-
-            case TokenType::NUMBER:
-            case TokenType::FLOAT_NUMBER:
-            case TokenType::LITERAL:{
-                if(assignmenting){
-                    mapTokenTypeToTipo(token.getType());
-                    if(checkAtribuicao(tokenProcessado.getText(),mapTokenTypeToTipo(token.getType()),token.getText())){
-                        scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
-                    }
-                }
-                break;
-            }
-
-
-
-
-            case TokenType::ASSIGNMENT:{
-                assignmenting = true;
-                break;
-            }
-            
-            // Outros cases...
-        }
+        }       
     }
-}
-
 };
