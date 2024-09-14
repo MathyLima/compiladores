@@ -1,9 +1,7 @@
 #include <iostream>
 #include "lexical/Scanner/Scanner.h"
 #include "lexical/Token/Token.h"
-#include "../parser/Parser.h"
-
-
+#include "parser/Parser.h"
 
 int main()
 {
@@ -18,7 +16,7 @@ int main()
         {
             break;
         }
-        tokenStream.push_back({tk.getType(),tk.getText(),tk.getRow()});
+        tokenStream.push_back({tk.getType(), tk.getText(), tk.getRow()});
         std::cout << tk.getText() << " (Type: " << static_cast<int>(tk.getType()) << ")" << std::endl;
     }
 
@@ -32,15 +30,11 @@ int main()
         NodeLevel nodeLevels;
         build_node_levels(ast, nodeLevels); // Constrói o array de arrays
         std::cout << "\nConteúdo do array de arrays:" << std::endl;
-        nodeLevels.printLevels(); // Imprime os níveis de nós
     }
     catch (const SyntaxError &e)
     {
         std::cerr << e.what() << std::endl;
     }
-
-
-
 
     std::cout << "Analise lexica foi sucesso" << std::endl;
 

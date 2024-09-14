@@ -1,5 +1,6 @@
-#ifndef SINTAX_H
-#define SINTAX_H
+// Parser.h
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <iostream>
 #include <string>
@@ -9,90 +10,60 @@
 #include <unordered_set>
 #include <functional>
 #include "../lexical/Token/Token.h"
-// Declaração do enum TokenType
-enum TokenType
+
+class SyntaxError : public std::runtime_error
 {
-    IDENTIFIER,
-    KEYWORD,
-    NUMBER,
-    FLOAT_NUMBER,
-    ADD_OPERATOR,
-    MULT_OPERATOR,
-    REL_OPERATOR,
-    EQUAL_OPERATOR,
-    DELIMITER,
-    LOGICAL_OPERATOR,
-    ASSIGNMENT,
-    LITERAL,
-    REL_FUNCTION,
-    NONE,
-    PROGRAM = 101,
-    VAR = 102,
-    INTEGER = 103,
-    REAL = 104,
-    BOOLEAN = 105,
-    PROCEDURE = 106,
-    BEGIN = 107,
-    END = 108,
-    IF = 109,
-    THEN = 110,
-    ELSE = 111,
-    WHILE = 112,
-    DO = 113,
-    NOT = 114,
-    COMMA,
-    SEMICOLON,
-    DOT,
-    COLON,
-    PLUS,
-    MINUS,
-    MULTIPLY,
-    DIVIDE,
-    LPAREN,
-    RPAREN,
-    EOF_TOKEN,
-    TRUE,
-    FALSE
+public:
+    SyntaxError(const std::string &msg) : std::runtime_error(msg) {}
 };
 
-// Estrutura para o Token
+// Estrutura de nó da AST
+struct ASTNode
+{
+    Token token; // O nó agora contém um objeto Token
+    std::vector<ASTNode *> children;
 
+    ASTNode(const Token &tok) : token(tok) {} // Construtor para inicializar o nó com um Token
 
-// Estrutura para NodeLevel
+    void addChild(ASTNode *child)
+    {
+        children.push_back(child);
+    }
+};
+
+// Para alterar o que vai para o nó, altere a Struct ASTNode e a função build_node_levels
 struct NodeLevel
 {
     std::vector<std::vector<std::string>> levels;
 
-    void addLevel(const std::vector<std::string> &level);
-    void printLevels();
+    void addLevel(const std::vector<std::string> &level)
+    {
+        levels.push_back(level);
+    }
+
+    void printLevels()
+    {
+        for (const auto &level : levels)
+        {
+            std::cout << "[";
+            for (size_t i = 0; i < level.size(); ++i)
+            {
+                std::cout << level[i];
+                if (i != level.size() - 1)
+                {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << "]" << std::endl;
+        }
+    }
 };
 
-// Declaração da classe SyntaxError para exceções de sintaxe
-class SyntaxError : public std::runtime_error
-{
-public:
-    SyntaxError(const std::string &msg);
-};
-
-// Estrutura para nós da AST
-struct ASTNode
-{
-    Token token;
-    std::vector<ASTNode *> children;
-
-    ASTNode(const Token &tok);
-    void addChild(ASTNode *child);
-};
-
-// Funções auxiliares
-void print_ast(ASTNode *node, std::stack<std::string> &nodeStack, int indent = 0);
-void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0);
-
-// Declaração da classe Parser
 class Parser
 {
 public:
     Parser(const std::vector<Token> &tokens);
+
     ASTNode *parse_program();
 
 private:
@@ -134,8 +105,10 @@ private:
     TokenType reserved_words_to_token(std::string tokenStr);
 };
 
-// Funções de análise semântica
+// Declaração das funções auxiliares
+void print_ast(ASTNode *node, std::stack<std::string> &nodeStack, int indent = 0);
+void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0);
 Token parse_token(const std::string &node_str);
 void semantic_analysis(const NodeLevel &nodeLevels);
 
-#endif // SINTAX_H
+#endif // PARSER_H

@@ -1,10 +1,11 @@
+// Token.h
 #ifndef TOKEN_H
 #define TOKEN_H
 
 #include <string>
 #include <iostream>
 
-enum class TokenType
+enum TokenType
 {
     IDENTIFIER,
     KEYWORD,
@@ -19,25 +20,57 @@ enum class TokenType
     ASSIGNMENT,
     LITERAL,
     REL_FUNCTION,
-    NONE
+    NONE,
+    PROGRAM = 101,
+    VAR = 102,
+    INTEGER = 103,
+    REAL = 104,
+    BOOLEAN = 105,
+    PROCEDURE = 106,
+    BEGIN = 107,
+    END = 108,
+    IF = 109,
+    THEN = 110,
+    ELSE = 111,
+    WHILE = 112,
+    DO = 113,
+    NOT = 114,
+    COMMA,
+    SEMICOLON,
+    DOT,
+    COLON,
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    LPAREN,
+    RPAREN,
+    EOF_TOKEN,
+    TRUE,
+    FALSE
 };
 
+// Classe para token
 class Token
 {
-private:
-    TokenType type;
-    std::string text;
-    std::string row;
-
 public:
-    Token(TokenType type = TokenType::NONE, const std::string &text = "", const std::string &row = "");
+    TokenType type;
+    std::string value;
+    std::string line;
 
-    TokenType getType() const;
-    void setType(TokenType newType); // Removido o Token:: desnecessário
-    std::string getRow() const;
-    std::string getText() const;
+    Token(TokenType type = NONE, const std::string &value = "", const std::string &line = "")
+        : type(type), value(value), line(line) {}
 
-    friend std::ostream &operator<<(std::ostream &os, const Token &token);
+    TokenType getType() const { return type; }
+    void setType(TokenType newType) { type = newType; }
+    std::string getRow() const { return line; }
+    std::string getText() const { return value; }
+
+    friend std::ostream &operator<<(std::ostream &os, const Token &token)
+    {
+        os << "Token(Type: " << token.type << ", Value: " << token.value << ", Line: " << token.line << ")";
+        return os;
+    }
 };
 
-#endif
+#endif // TOKEN_H
