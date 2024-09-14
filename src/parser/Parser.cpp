@@ -45,48 +45,62 @@ void print_ast(ASTNode *node, std::stack<std::string> &nodeStack, int indent)
     }
 }
 
-void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent)
+// void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent)
+// {
+//     if (!node)
+//         return;
+
+//     std::vector<std::string> currentLevel;
+
+//     // Verifica se o nó é um não-terminal
+//     bool isNonTerminal = node->token.type == NONE;
+
+//     // Adiciona o nó atual (pai) como o primeiro elemento do nível somente se for um não-terminal
+//     if (isNonTerminal)
+//     {
+//         currentLevel.push_back(
+//             "Type: " + std::to_string(node->token.type) +
+//             ", Value: " + node->token.value +
+//             ", Line: " + node->token.line);
+//     }
+
+//     // Adiciona os filhos ao mesmo nível
+//     for (ASTNode *child : node->children)
+//     {
+//         if (child == nullptr)
+//         {
+//             continue;
+//         }
+//         currentLevel.push_back(
+//             "Type: " + std::to_string(child->token.type) +
+//             ", Value: " + child->token.value +
+//             ", Line: " + child->token.line);
+//     }
+
+//     // Adiciona o nível atual ao NodeLevel
+//     if (!currentLevel.empty())
+//     {
+//         nodeLevels.addLevel(currentLevel);
+//     }
+
+//     // Agora, percorre os filhos recursivamente
+//     for (ASTNode *child : node->children)
+//     {
+//         build_node_levels(child, nodeLevels, indent + 1);
+//     }
+// }
+void generate_token_sequence(ASTNode *node, TokenSequence &sequence)
 {
     if (!node)
         return;
 
-    std::vector<std::string> currentLevel;
+    // Add the current node's token to the sequence
+    sequence.tokens.push_back(node->token);
 
-    // Verifica se o nó é um não-terminal
-    bool isNonTerminal = node->token.type == NONE;
-
-    // Adiciona o nó atual (pai) como o primeiro elemento do nível somente se for um não-terminal
-    if (isNonTerminal)
-    {
-        currentLevel.push_back(
-            "Type: " + std::to_string(node->token.type) +
-            ", Value: " + node->token.value +
-            ", Line: " + node->token.line);
-    }
-
-    // Adiciona os filhos ao mesmo nível
+    // Recursively process the children
     for (ASTNode *child : node->children)
     {
-        if (child == nullptr)
-        {
-            continue;
-        }
-        currentLevel.push_back(
-            "Type: " + std::to_string(child->token.type) +
-            ", Value: " + child->token.value +
-            ", Line: " + child->token.line);
-    }
-
-    // Adiciona o nível atual ao NodeLevel
-    if (!currentLevel.empty())
-    {
-        nodeLevels.addLevel(currentLevel);
-    }
-
-    // Agora, percorre os filhos recursivamente
-    for (ASTNode *child : node->children)
-    {
-        build_node_levels(child, nodeLevels, indent + 1);
+        generate_token_sequence(child, sequence);
     }
 }
 

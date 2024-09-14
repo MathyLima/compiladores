@@ -27,17 +27,19 @@ int main()
         ASTNode *ast = parser.parse_program(); // Gera a AST
         std::cout << "Programa Pascal analisado com sucesso!" << std::endl;
 
-        NodeLevel nodeLevels;
-        build_node_levels(ast, nodeLevels); // Constrói o array de arrays
-        std::cout << "\nConteúdo do array de arrays:" << std::endl;
-        nodeLevels.printLevels(); // Imprime os níveis de nós
+        // Alteração para utilizar a nova função generate_token_sequence
+        TokenSequence tokenSequence;
+        generate_token_sequence(ast, tokenSequence); // Gera a sequência linear de tokens
+
+        std::cout << "\nConteúdo da sequência de tokens:" << std::endl;
+        tokenSequence.printSequence(); // Imprime a sequência de tokens
     }
     catch (const SyntaxError &e)
     {
         std::cerr << e.what() << std::endl;
     }
 
-    std::cout << "Analise lexica foi sucesso" << std::endl;
+    std::cout << "Análise léxica foi um sucesso" << std::endl;
 
     return 0;
 }
