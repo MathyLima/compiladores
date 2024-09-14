@@ -1,10 +1,11 @@
+// Token.h
 #ifndef TOKEN_H
 #define TOKEN_H
 
 #include <string>
 #include <iostream>
 
-enum class TokenType
+enum TokenType
 {
     IDENTIFIER,
     KEYWORD,
@@ -44,23 +45,32 @@ enum class TokenType
     DIVIDE,
     LPAREN,
     RPAREN,
-    EOF_TOKEN
+    EOF_TOKEN,
+    TRUE,
+    FALSE
 };
 
+// Classe para token
 class Token
 {
-private:
-    TokenType type;
-    std::string text;
-
 public:
-    Token(TokenType type = TokenType::NONE, const std::string &text = "");
+    TokenType type;
+    std::string value;
+    std::string line;
 
-    TokenType getType() const;
-    void setType(TokenType newType);
-    std::string getText() const;
+    Token(TokenType type = NONE, const std::string &value = "", const std::string &line = "")
+        : type(type), value(value), line(line) {}
 
-    friend std::ostream &operator<<(std::ostream &os, const Token &token);
+    TokenType getType() const { return type; }
+    void setType(TokenType newType) { type = newType; }
+    std::string getRow() const { return line; }
+    std::string getText() const { return value; }
+
+    friend std::ostream &operator<<(std::ostream &os, const Token &token)
+    {
+        os << "Token(Type: " << token.type << ", Value: " << token.value << ", Line: " << token.line << ")";
+        return os;
+    }
 };
 
-#endif
+#endif // TOKEN_H

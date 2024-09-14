@@ -8,8 +8,6 @@ int main()
     std::vector<Token> tokenStream;
     Scanner sc("source_code.mc");
 
-    // Primeiro, imprima todos os tokens gerados pelo scanner
-    std::cout << "Token sequence:" << std::endl;
     Token tk;
     while (true)
     {
@@ -18,12 +16,26 @@ int main()
         {
             break;
         }
-        tokenStream.push_back(tk);
+        tokenStream.push_back({tk.getType(), tk.getText(), tk.getRow()});
         std::cout << tk.getText() << " (Type: " << static_cast<int>(tk.getType()) << ")" << std::endl;
-    
-
     }
-    //analisadorSintatico(tokenStream);
+
+    Parser parser(tokenStream);
+
+    try
+    {
+        ASTNode *ast = parser.parse_program(); // Gera a AST
+        std::cout << "Programa Pascal analisado com sucesso!" << std::endl;
+
+        NodeLevel nodeLevels;
+        build_node_levels(ast, nodeLevels); // Constrói o array de arrays
+        std::cout << "\nConteúdo do array de arrays:" << std::endl;
+        nodeLevels.printLevels(); // Imprime os níveis de nós
+    }
+    catch (const SyntaxError &e)
+    {
+        std::cerr << e.what() << std::endl;
+    }
 
     std::cout << "Analise lexica foi sucesso" << std::endl;
 

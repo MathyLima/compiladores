@@ -5,23 +5,6 @@
 #include <vector>
 #include <unordered_map>
 
-std::vector<Token> tokenStream;
-
-bool analiseSintatica(const Token &token)
-{
-    std::cout << "chamei o analisador sintatico pra " << token << std::endl;
-    return true;
-};
-
-bool verificarSintaxe(const Token &token, int row, int col)
-{
-    if (!analiseSintatica(token))
-    {
-        std::cerr << "syntax error na linha " << row << " e coluna " << col << std::endl;
-        return false;
-    }
-    return true;
-}
 Scanner::Scanner(const std::string &source) : pos(0), row(1), col(0)
 {
     std::ifstream file(source);
@@ -89,7 +72,7 @@ Token Scanner::nextToken()
             else if (isRelationalOperator(currentChar))
             {
                 content += currentChar;
-                state = 7;
+                state = 7; // Transição para operadores relacionais
             }
             else if (isDelimiter(currentChar))
             {
@@ -110,12 +93,12 @@ Token Scanner::nextToken()
             else if (isEquationOperator(currentChar))
             {
                 content += currentChar;
-                state = 11; 
+                state = 11; // Transição para operadores matemáticos
             }
             else if (isHashtag(currentChar))
             {
                 content += currentChar;
-                state = 12; 
+                state = 12; // Transição para comentários
             }
             else
             {
@@ -126,16 +109,18 @@ Token Scanner::nextToken()
         case 1:
             if (isLetter(currentChar) || isDigit(currentChar) || currentChar == '_')
             {
-                
+                // std::cout << "Lendo caractere: " << currentChar << " (conteúdo atual: " << content << ")" << std::endl;
                 content += currentChar;
                 state = 1;
             }
             else
             {
-                
+                // std::cout << "Mudando para o estado 2. Conteúdo final do identificador: " << content << std::endl;
+                // std::cout << "\nEsse eh meu currentChar: " << currentChar << std::endl;
                 back();
                 back();
                 currentChar = nextChar();
+                // std::cout << "\nApliquei dois back e esse eh meu currentChar: " << currentChar << std::endl;
                 state = 2;
             }
             break;
@@ -144,28 +129,26 @@ Token Scanner::nextToken()
             existReserved = reservedWords.find(content);
             if (existReserved != reservedWords.end())
             {
-                currentToken = Token(TokenType::KEYWORD, existReserved->second);
+                currentToken = Token(TokenType::KEYWORD, existReserved->second, std::to_string(row));
             }
             else if (content == "AND" || content == "and")
             {
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
+                currentToken = Token(TokenType::MULT_OPERATOR, content, std::to_string(row));
             }
             else if (content == "OR" || content == "or")
             {
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
+                currentToken = Token(TokenType::ADD_OPERATOR, content, std::to_string(row));
             }
             else
             {
-                currentToken = Token(TokenType::IDENTIFIER, content);
+                currentToken = Token(TokenType::IDENTIFIER, content, std::to_string(row));
             }
-            
-            
+
+            // Aqui, o currentChar precisa ser igual a currentChar -1 posição. Como posso fazer isso com o que tem implementado aqui nesse aqruivo chat?
             back();
-            tokenStream.push_back(currentToken);
-            verificarSintaxe(currentToken, row, col);
             return currentToken;
 
-        case 3: 
+        case 3: // Parte inteira do número
             if (isDigit(currentChar))
             {
                 content += currentChar;
@@ -173,24 +156,21 @@ Token Scanner::nextToken()
             else if (currentChar == '.')
             {
                 content += currentChar;
-                state = 4;
+                state = 4; // Transição para processar a parte fracionária
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::NUMBER, content);
-
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
+                currentToken = Token(TokenType::NUMBER, content, std::to_string(row));
+                return currentToken; // Número inteiro
             }
             break;
 
-        case 4: 
+        case 4: // Parte fracionária ou delimitador
             if (isDigit(currentChar) || currentChar == 'E' || currentChar == 'e')
             {
-                content += currentChar; 
-                state = 5;              
+                content += currentChar; // Continua processando a parte fracionária
+                state = 5;              // Transição para processar a parte exponencial
             }
             else
             {
@@ -198,72 +178,62 @@ Token Scanner::nextToken()
             }
             break;
 
-        case 5: 
+        case 5: // Parte exponencial
             if (isDigit(currentChar) || currentChar == '+' || currentChar == '-')
             {
-                content += currentChar;
-                state = 6;             
+                content += currentChar; // Expoente sem sinal, processa diretamente
+                state = 6;              // Vai para o estado que processa os dígitos do expoente
             }
             else
             {
                 if (isDigit(content.back()))
                 {
                     back();
-                    currentToken = Token(TokenType::FLOAT_NUMBER, content);
-
-                    tokenStream.push_back(currentToken);
-                    verificarSintaxe(currentToken, row, col);
-                    return currentToken; 
+                    currentToken = Token(TokenType::FLOAT_NUMBER, content, std::to_string(row));
+                    return currentToken; // Retorna número flutuante com expoente
                 }
                 throw std::runtime_error("Malformed floating point number at row " + std::to_string(row) + ", col " + std::to_string(col) + ": missing exponent digits");
             }
             break;
 
-        case 6:
+        case 6: // Processa dígitos do expoente
             if (isDigit(currentChar))
             {
-                content += currentChar; 
+                content += currentChar; // Continua processando os dígitos do expoente
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::FLOAT_NUMBER, content);
-
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken; 
+                currentToken = Token(TokenType::FLOAT_NUMBER, content, std::to_string(row));
+                return currentToken; // Retorna número flutuante com expoente
             }
             break;
         case 7:
             if (currentChar == '=')
             {
                 content += currentChar;
-                state = 9; 
+                state = 9; // Transição para verificar operador relacional com '='
             }
             else if (content.back() == '<' && currentChar == '>')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::REL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::REL_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
             else if (isSpace(currentChar) || isDigit(currentChar))
             {
                 back();
-                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(content[0] == '=' ? TokenType::EQUAL_OPERATOR : TokenType::REL_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::REL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
+            break;
+
         case 8:
             if (isRelationalOperator(currentChar) && currentChar == '=')
             {
@@ -272,10 +242,7 @@ Token Scanner::nextToken()
             }
             else
             {
-                currentToken = Token(TokenType::LOGICAL_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::LOGICAL_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
             break;
@@ -284,76 +251,35 @@ Token Scanner::nextToken()
             {
                 back();
             }
-            currentToken = Token(TokenType::REL_OPERATOR, content);
+            currentToken = Token(TokenType::REL_OPERATOR, content, std::to_string(row));
             return currentToken;
 
             break;
         case 10:
             if (currentChar == ';')
             {
-                currentToken = Token(TokenType::SEMICOLON, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
                 return currentToken;
             }
-            else if (currentChar == ',')
+            if (isRelationalOperator(currentChar))
             {
-                currentToken = Token(TokenType::COMMA, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
+                back();
             }
-            else if (currentChar == '.')
-            {
-                currentToken = Token(TokenType::DOT, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
-            }
-            else if (currentChar == ':')
-            {
-                currentToken = Token(TokenType::COLON, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
-            }
-            else if (currentChar == '(')
-            {
-                currentToken = Token(TokenType::LPAREN, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
-            }
-            else if (currentChar == ')')
-            {
-                currentToken = Token(TokenType::RPAREN, content);
-                 verificarSintaxe(currentToken, row, col);
-                return currentToken;
-            }
-            else
-            {
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
-                return currentToken;
-            }
+            currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
+            return currentToken;
+            break;
 
         case 11:
             if (content.back() == '+' || content.back() == '-')
             {
                 back();
-                currentToken = Token(TokenType::ADD_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::ADD_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                
-                currentToken = Token(TokenType::MULT_OPERATOR, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::MULT_OPERATOR, content, std::to_string(row));
                 return currentToken;
             }
             break;
@@ -370,17 +296,13 @@ Token Scanner::nextToken()
             if (currentChar == '=')
             {
                 content += currentChar;
-                currentToken = Token(TokenType::ASSIGNMENT, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::ASSIGNMENT, content, std::to_string(row));
                 return currentToken;
             }
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
                 return currentToken;
             }
         case 14:
@@ -392,9 +314,7 @@ Token Scanner::nextToken()
             else
             {
                 back();
-                currentToken = Token(TokenType::DELIMITER, content);
-                tokenStream.push_back(currentToken);
-                verificarSintaxe(currentToken, row, col);
+                currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
                 return currentToken;
             }
         default:
@@ -405,7 +325,7 @@ Token Scanner::nextToken()
 
 Token Scanner::getCurrentToken()
 {
-    return currentToken; 
+    return currentToken; // Apenas retorna o token atual sem avançar
 }
 
 bool Scanner::isDigit(char c)
