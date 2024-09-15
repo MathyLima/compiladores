@@ -93,6 +93,10 @@ Token Scanner::nextToken()
                 
                     state = 14;
                 }
+                else if (currentChar == '{')
+                {
+                    state = 15; // Novo estado para ignorar comentários entre {}
+                }
                 else
                 {
                     state = 10;
@@ -140,6 +144,14 @@ Token Scanner::nextToken()
             else if (content == "OR" || content == "or")
             {
                 currentToken = Token(TokenType::OR, content, std::to_string(row));
+            }
+            else if (content == "FOR" || content == "for")
+            {
+                currentToken = Token(TokenType::FOR, content, std::to_string(row));
+            }
+            else if (content == "TO" || content == "to")
+            {
+                currentToken = Token(TokenType::TO, content, std::to_string(row));
             }
             else
             {
@@ -307,6 +319,20 @@ Token Scanner::nextToken()
                 currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
                 return currentToken;
             }
+        case 15: // Ignorar tudo entre { e }
+            while (!isEOF() && currentChar != '}')
+            {
+                currentChar = nextChar();
+            }
+            if (currentChar == '}')
+            {
+                state = 0;    // Voltar ao estado inicial
+                content = ""; // Reseta o conteúdo já que é um comentário
+            }
+            else
+            {
+                throw std::runtime_error("Unterminated comment at row " + std::to_string(row) + ", col " + std::to_string(col));
+            }
             break;
 
         default:
@@ -347,7 +373,7 @@ bool Scanner::isEquationOperator(char c)
 
 bool Scanner::isDelimiter(char c)
 {
-    return c == '(' || c == ')' || c == ';' || c == ',' || c == '.' || c == ':';
+    return c == '(' || c == ')' || c == ';' || c == ',' || c == '.' || c == ':' || c =='{' || c == '}';
 }
 
 bool Scanner::isEquationSinal(char c)

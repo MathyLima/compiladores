@@ -185,7 +185,7 @@ ASTNode *Parser::expect(TokenType expected_type)
 // Implementação de is_command_start
 bool Parser::is_command_start(TokenType type)
 {
-    return type == IDENTIFIER || type == BEGIN || type == IF || type == WHILE;
+    return type == IDENTIFIER || type == BEGIN || type == IF || type == WHILE || type == FOR;
 }
 
 // Implementação de parse_block
@@ -373,6 +373,10 @@ ASTNode *Parser::parse_command()
     {
         return parse_while_statement();
     }
+    else if (current_token.type == FOR) // Adicione este caso
+    {
+        return parse_for_statement(); // Você precisará implementar essa função para tratar o loop FOR
+    }
     else
     {
         throw SyntaxError("Linha: " + current_token.line +
@@ -380,7 +384,21 @@ ASTNode *Parser::parse_command()
     }
 }
 
-// Implementação de parse_procedure_activation
+ASTNode *Parser::parse_for_statement()
+{
+    std::cout << "Estou dentro de parse_for_statement" << std::endl;
+    ASTNode *forNode = new ASTNode({NONE, "ForStatement", ""});
+
+    forNode->addChild(expect(FOR));
+    forNode->addChild(parse_assignment_statement()); // Geralmente um FOR começa com uma atribuição
+    forNode->addChild(expect(TO));
+    forNode->addChild(parse_expression()); // Geralmente uma expressão define o final do loop
+    forNode->addChild(expect(DO));
+    forNode->addChild(parse_command()); // O corpo do loop pode ser um comando ou um bloco
+
+    return forNode;
+}
+
 ASTNode *Parser::parse_procedure_activation()
 {
     std::cout << "Estou dentro de parse_procedure_activation" << std::endl;
@@ -674,6 +692,10 @@ std::string Parser::token_type_to_string(TokenType type)
         return "and";
     case OR:
         return "or";
+    case FOR:
+        return "for";
+    case TO:
+        return "to";
     default:
         return "unknown";
     }
@@ -682,38 +704,42 @@ std::string Parser::token_type_to_string(TokenType type)
 // Implementação de reserved_words_to_token
 TokenType Parser::reserved_words_to_token(std::string tokenStr)
 {
-    if (tokenStr == "program-101" || tokenStr == "program")
+    if (tokenStr == "program")
         return PROGRAM;
-    else if (tokenStr == "var-102" || tokenStr == "var")
+    else if (tokenStr == "var")
         return VAR;
-    else if (tokenStr == "integer-103" || tokenStr == "integer")
+    else if (tokenStr == "for")
+        return FOR;
+    else if (tokenStr == "to")
+        return TO;
+    else if (tokenStr == "integer")
         return INTEGER;
-    else if (tokenStr == "real-104" || tokenStr == "real")
+    else if (tokenStr == "real")
         return REAL;
-    else if (tokenStr == "boolean-105" || tokenStr == "boolean")
+    else if (tokenStr == "boolean")
         return BOOLEAN;
-    else if (tokenStr == "procedure-106" || tokenStr == "procedure")
+    else if (tokenStr == "procedure")
         return PROCEDURE;
-    else if (tokenStr == "begin-107" || tokenStr == "begin")
+    else if (tokenStr == "begin")
         return BEGIN;
-    else if (tokenStr == "end-108" || tokenStr == "end")
+    else if (tokenStr == "end")
         return END;
-    else if (tokenStr == "if-109" || tokenStr == "if")
+    else if (tokenStr == "if")
         return IF;
-    else if (tokenStr == "then-110" || tokenStr == "then")
+    else if (tokenStr == "then")
         return THEN;
-    else if (tokenStr == "else-111" || tokenStr == "else")
+    else if (tokenStr == "else")
         return ELSE;
-    else if (tokenStr == "while-112" || tokenStr == "while")
+    else if (tokenStr == "while")
         return WHILE;
-    else if (tokenStr == "do-113" || tokenStr == "do")
+    else if (tokenStr == "do")
         return DO;
-    else if (tokenStr == "not-114" || tokenStr == "not")
+    else if (tokenStr == "not")
         return NOT;
     else if (tokenStr == "and" || tokenStr == "AND")
-        return AND; 
+        return AND;
     else if (tokenStr == "or" || tokenStr == "OR")
-        return OR; 
+        return OR;
     else if (tokenStr == "true")
         return TRUE;
     else if (tokenStr == "false")

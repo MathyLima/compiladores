@@ -112,6 +112,7 @@ private:
     ASTNode *parse_if_statement();
     ASTNode *parse_else_part();
     ASTNode *parse_while_statement();
+    ASTNode *parse_for_statement(); 
     ASTNode *parse_expression();
     ASTNode *parse_simple_expression();
     ASTNode *parse_term();

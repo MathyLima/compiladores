@@ -49,7 +49,9 @@ enum TokenType
     RPAREN,
     EOF_TOKEN,
     TRUE,
-    FALSE
+    FALSE,
+    FOR,
+    TO
 };
 
 // Classe para token
