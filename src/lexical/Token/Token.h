@@ -35,6 +35,8 @@ enum TokenType
     WHILE = 112,
     DO = 113,
     NOT = 114,
+    AND =115,
+    OR = 116,
     COMMA,
     SEMICOLON,
     DOT,

@@ -135,11 +135,11 @@ Token Scanner::nextToken()
             }
             else if (content == "AND" || content == "and")
             {
-                currentToken = Token(TokenType::MULT_OPERATOR, content, std::to_string(row));
+                currentToken = Token(TokenType::AND, content, std::to_string(row));
             }
             else if (content == "OR" || content == "or")
             {
-                currentToken = Token(TokenType::ADD_OPERATOR, content, std::to_string(row));
+                currentToken = Token(TokenType::OR, content, std::to_string(row));
             }
             else
             {
@@ -255,7 +255,7 @@ Token Scanner::nextToken()
 
             break;
         case 10:
-            // back(); // Retrocede para reprocessar o caractere atual
+             back(); // Retrocede para reprocessar o caractere atual
             currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
             return currentToken;
 

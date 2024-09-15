@@ -1,0 +1,143 @@
+program Test1;
+   var
+      Area, Comprimento, Raio : real; 
+ & begin   {essa linha deve gerar um erro devido ao caracter não conhecido}
+      Raio := 4;
+      Area := 3.14 * Raio * Raio;
+      Comprimento := 2 * 3.14 * Raio
+end.
+
+{testar multiplos espacos também}
+{gere erros sintáticos, como retirar uma atribuição}
+{veja o que a especificação diz em relação ao uso de ";" no último comando. Eh necessário?}
+
+
+program Test2;
+var
+   X, A, B : integer;
+begin
+   A := 5;
+   B := 10;
+   if (A > B) then
+   begin
+      X := A;
+      A := B;
+      B := X   {veja que o ultimo comando de um bloco nao possui o ;}
+   end         {alguns alunos preferem implementar com ;}
+end.	       
+
+{gere erros sintaticos}
+
+
+program Test3;
+var
+   NUMERO : integer;
+begin
+   NUMERO = - 3 * 5 + 7 - 9;
+   if (NUMERO >= 20) and (NUMERO <=90) then
+      NUMERO = 10 * 3   
+   else NUMERO = 10 / 3  
+end.
+
+{utilizar comentario nao fechado para ver se o erro está sendo capturado}
+
+
+program Test4;
+var
+   A, B, R, I : integer;
+
+procedure teste (A:integer, B:real);
+var
+   S,X: real;
+begin
+   S := A + B * X
+end;  {verifique se esse ";" no fechamento de um procedimento é necessário}
+
+begin
+   while (I <= 5) do
+   begin
+      A := A+1;
+      B := B-1;
+      R := A + B;
+      I := I + 1
+   end
+end.
+
+{retirar algumas palavras reservadas para gerar erros sintáticos}
+
+
+
+program Test5;
+var
+   A, B, R, I : integer;
+begin
+   for I := 1 to 5 do
+   begin
+      A := A * A;
+      B := B * A;
+      R := A + B
+   end
+end.
+
+{utilizar mais de um for - encadeado}
+{cuidado com o ";" entenda o que a gramática está pedindo}
+
+
+
+
+program test6;		#{Este arquivo representa um programa correto}
+
+var			#{Existem diversos erros que podem ser gerados neste arquivo. Alguns exemplos:}
+ 
+  a,b,c: integer;      	
+   
+  x,y,z: real;		#{Declare novamente a variavel "a" como real para que gere um erro "variavel ja declarada"}
+  
+  chave: boolean;
+
+  procedure LimparTela;	
+   
+  begin			
+   
+  end;
+
+ 
+
+  procedure Somatorio(entrada:integer);
+   
+  var
+      
+     resultado: integer; #{Declare a variavel "a" novamente. Neste caso nao deve gerar erro poiso escopo a outro}
+  
+  begin
+
+     resultado := 0;
+      
+     #{LimparTela; adicione este procedimento}
+     while (entrada>0) do #{no lugar de "entrada" use "input" e veja se gera o erro "variavel nao declarada" }
+                         resultado := resultado + entrada;
+     entrada := entrada - 1		#{troque "1" por "chave" e veja se gera o erro "tipos incompataveis"}	
+     
+  end;
+
+
+
+
+begin
+   
+   LimparTela;
+   
+   Somatorio(a);
+   x:= y + z * (5.5 - c) / 2.567; #{troque "x" por "a" e veja se gera o erro "tipos incompataveis"}
+  
+   if chave then 
+
+      if x <> z then #{substitua x por chave} 
+ 
+         z := 5.0 #{troque "5.0" por "test1" e veja se gera erro "Nome do programa nao pode ser usado"}
+  
+      else
+   
+      chave := not chave
+
+end. 

@@ -270,7 +270,8 @@ ASTNode *Parser::parse_type()
     }
     else
     {
-        throw SyntaxError("Erro de sintaxe: tipo de variável inválido");
+        throw SyntaxError("Linha: " + current_token.line +
+                          " Erro de sintaxe: tipo de variável inválido");
     }
     return typeNode;
 }
@@ -439,7 +440,12 @@ ASTNode *Parser::parse_else_part()
     std::cout << "Estou dentro de parse_else_part" << std::endl;
     if (current_token.type == ELSE)
     {
-        return expect(ELSE);
+        ASTNode *elseNode = new ASTNode({current_token.type, current_token.value, current_token.line});
+        advance(); // Avança o token após o else
+
+        // Adiciona o comando ou bloco de comandos após o else
+        elseNode->addChild(parse_command());
+        return elseNode;
     }
     return new ASTNode({NONE, "NoElse", ""});
 }
@@ -462,13 +468,16 @@ ASTNode *Parser::parse_expression()
     std::cout << "Estou dentro de parse_expression" << std::endl;
     ASTNode *exprNode = new ASTNode({NONE, "Expression", ""});
     exprNode->addChild(parse_simple_expression());
-    if (current_token.type == REL_OPERATOR)
+
+    // Processa operadores relacionais ou lógicos após uma expressão simples
+    while (current_token.type == REL_OPERATOR || current_token.type == AND || current_token.type == OR)
     {
-        ASTNode *relOpNode = new ASTNode({REL_OPERATOR, current_token.value, current_token.line});
+        ASTNode *opNode = new ASTNode({current_token.type, current_token.value, current_token.line});
         advance();
-        relOpNode->addChild(parse_simple_expression());
-        exprNode->addChild(relOpNode);
+        opNode->addChild(parse_simple_expression());
+        exprNode->addChild(opNode);
     }
+
     return exprNode;
 }
 
@@ -478,20 +487,31 @@ ASTNode *Parser::parse_simple_expression()
     std::cout << "Estou dentro de parse_simple_expression" << std::endl;
     ASTNode *simpleExprNode = new ASTNode({NONE, "SimpleExpression", ""});
 
-    // Primeiro termo
-    simpleExprNode->addChild(parse_term());
+    // Verifica se o primeiro token é um operador unário
+    if (current_token.type == PLUS || current_token.type == MINUS)
+    {
+        ASTNode *unaryOpNode = new ASTNode({current_token.type, current_token.value, current_token.line});
+        advance();
+        unaryOpNode->addChild(parse_term());
+        simpleExprNode->addChild(unaryOpNode);
+    }
+    else
+    {
+        simpleExprNode->addChild(parse_term());
+    }
 
-    // Loop para processar operadores de soma e subtração
+    // Continua processando o restante da expressão
     while (current_token.type == PLUS || current_token.type == MINUS)
     {
         ASTNode *addOpNode = new ASTNode({current_token.type, current_token.value, current_token.line});
-        advance();                           // Avança para o próximo token (após o operador)
-        addOpNode->addChild(parse_term());   // Processa o termo após o operador
-        simpleExprNode->addChild(addOpNode); // Adiciona o operador e o termo à árvore de expressão simples
+        advance();
+        addOpNode->addChild(parse_term());
+        simpleExprNode->addChild(addOpNode);
     }
 
     return simpleExprNode;
 }
+
 
 // Implementação de parse_term
 ASTNode *Parser::parse_term()
@@ -534,20 +554,19 @@ ASTNode *Parser::parse_parameter_list()
 {
     std::cout << "Estou dentro de parse_parameter_list" << std::endl;
     ASTNode *paramListNode = new ASTNode({NONE, "ParameterList", ""});
-    do
+
+    paramListNode->addChild(expect(IDENTIFIER)); // Espera primeiro identificador
+    paramListNode->addChild(expect(COLON));      // Espera o separador de tipo
+    paramListNode->addChild(parse_type());       // Espera o tipo do parâmetro
+
+    while (current_token.type == COMMA)
     {
-        paramListNode->addChild(parse_identifier_list());
-        paramListNode->addChild(expect(COLON));
-        paramListNode->addChild(parse_type());
-        if (current_token.type == SEMICOLON)
-        {
-            advance();
-        }
-        else
-        {
-            break;
-        }
-    } while (true);
+        advance();                                   // Avança a vírgula
+        paramListNode->addChild(expect(IDENTIFIER)); // Espera próximo identificador
+        paramListNode->addChild(expect(COLON));      // Espera o separador de tipo
+        paramListNode->addChild(parse_type());       // Espera o tipo do parâmetro
+    }
+
     return paramListNode;
 }
 
@@ -595,7 +614,8 @@ ASTNode *Parser::parse_factor()
     }
     else
     {
-        throw SyntaxError("Erro de sintaxe: fator inválido");
+        throw SyntaxError("Linha: " + current_token.line +
+                          " Erro de sintaxe: fator inválido");
     }
 }
 
@@ -650,6 +670,10 @@ std::string Parser::token_type_to_string(TokenType type)
         return "procedure";
     case REL_OPERATOR:
         return "= | < | > | <= | >= | <>";
+    case AND:
+        return "and";
+    case OR:
+        return "or";
     default:
         return "unknown";
     }
@@ -686,6 +710,10 @@ TokenType Parser::reserved_words_to_token(std::string tokenStr)
         return DO;
     else if (tokenStr == "not-114" || tokenStr == "not")
         return NOT;
+    else if (tokenStr == "and" || tokenStr == "AND")
+        return AND; 
+    else if (tokenStr == "or" || tokenStr == "OR")
+        return OR; 
     else if (tokenStr == "true")
         return TRUE;
     else if (tokenStr == "false")
