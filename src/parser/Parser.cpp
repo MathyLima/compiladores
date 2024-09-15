@@ -242,7 +242,7 @@ ASTNode *Parser::parse_identifier_list()
     idListNode->addChild(expect(IDENTIFIER));
     while (current_token.type == COMMA)
     {
-        advance();
+        idListNode->addChild(expect(COMMA)); // Adiciona a vírgula à árvore de sintaxe
         idListNode->addChild(expect(IDENTIFIER));
     }
     return idListNode;
@@ -477,24 +477,19 @@ ASTNode *Parser::parse_simple_expression()
 {
     std::cout << "Estou dentro de parse_simple_expression" << std::endl;
     ASTNode *simpleExprNode = new ASTNode({NONE, "SimpleExpression", ""});
-    if (current_token.type == PLUS || current_token.type == MINUS)
+
+    // Primeiro termo
+    simpleExprNode->addChild(parse_term());
+
+    // Loop para processar operadores de soma e subtração
+    while (current_token.type == PLUS || current_token.type == MINUS)
     {
-        ASTNode *sinalNode = new ASTNode({current_token.type, current_token.value, current_token.line});
-        advance();
-        sinalNode->addChild(parse_term());
-        simpleExprNode->addChild(sinalNode);
+        ASTNode *addOpNode = new ASTNode({current_token.type, current_token.value, current_token.line});
+        advance();                           // Avança para o próximo token (após o operador)
+        addOpNode->addChild(parse_term());   // Processa o termo após o operador
+        simpleExprNode->addChild(addOpNode); // Adiciona o operador e o termo à árvore de expressão simples
     }
-    else
-    {
-        simpleExprNode->addChild(parse_term());
-    }
-    while (current_token.type == ADD_OPERATOR)
-    {
-        ASTNode *addOpNode = new ASTNode({ADD_OPERATOR, current_token.value, current_token.line});
-        advance();
-        addOpNode->addChild(parse_term());
-        simpleExprNode->addChild(addOpNode);
-    }
+
     return simpleExprNode;
 }
 
