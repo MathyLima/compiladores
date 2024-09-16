@@ -513,5 +513,37 @@ int main() {
     };
     executarTeste(tokens3, false); // Deve falhar, pois não há um 'begin' correspondente
 
+    std::vector<Token> tokens4 = {
+    criarToken(VAR, "var"),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(COLON, ":"),
+    criarToken(INTEGER, "int"), // Declara x como inteiro no escopo global
+    criarToken(IDENTIFIER, "x"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "10"),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "15"),
+    criarToken(BEGIN, "begin"),
+    criarToken(VAR, "var"),
+    criarToken(IDENTIFIER, "y"),
+    criarToken(COLON, ":"),
+    criarToken(INTEGER, "int"), // Declara y no escopo aninhado
+    criarToken(IDENTIFIER, "y"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "20"),
+    criarToken(IDENTIFIER, "y"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "25"),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "30"), // Modifica x no escopo aninhado
+    criarToken(END, "end"),
+    criarToken(IDENTIFIER, "x"), // Acesso à x fora do escopo aninhado
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(INTEGER, "35")
+};
+
+executarTeste(tokens4, true); // Espera sucesso, se 'x' for 35 e 'y' for 25 após o teste
     return 0;
 }
