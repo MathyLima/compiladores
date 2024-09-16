@@ -5,10 +5,16 @@
 #include <vector>
 #include <stdexcept>
 #include "../lexical/Token/Token.h"
-#include "Semantico.h"
+// #include "Semantico.h"
 
 
-
+struct Simbolo
+{
+    TokenType tipo; // Usando TokenType em vez de Tipo
+    bool inicializado;
+    bool constante;
+    std::string valor;
+};
 
 struct Funcao
 {
@@ -88,7 +94,8 @@ class TabelaSimbolos{
             if (verificaVariavelExiste(nome)){
                 return variaveis[nome].constante;
             }
-            throw std::runtime_error("Erro: Variável não encontrada: " + nome);
+            return false;
+            // throw std::runtime_error("Erro: Variável não encontrada: " + nome);
         }
 
         void verificaInicializacao(const std::string &nome) {
@@ -210,7 +217,10 @@ public:
     }
 
     bool checkAtribuicao(const std::string &nome, TokenType valorTipo, const std::string &valor) {
-        TokenType varTipo = checkVariavel(nome);
+        TokenType varTipo = buscarVariavel(nome).getType();
+
+        
+
         if (scopeStack.top().verificaConstante(nome)) {
             throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
         }
@@ -274,19 +284,90 @@ public:
         throw std::runtime_error("Erro: Operador '" + operador + "' não reconhecido.");
     }
 
+    bool verificaVariavelExiste(const std::string& nome) {
+        std::stack<TabelaSimbolos> escoposAux = scopeStack;
+        while (!escoposAux.empty()) {
+            if (escoposAux.top().verificaVariavelExiste(nome)) {
+                return true;
+            }
+            escoposAux.pop();
+        }
+        return false;
+    }
+
+     Token buscarVariavel(const std::string& nome) {
+        std::stack<TabelaSimbolos> escoposAux = scopeStack;
+        while (!escoposAux.empty()) {
+            if (escoposAux.top().verificaVariavelExiste(nome)) {
+                return escoposAux.top().getTipoVariavel(nome);
+            }
+            escoposAux.pop();
+        }
+        throw std::runtime_error("Variável não declarada: " + nome);
+    }
+    bool atribuirValorVariavel(const std::string& nome, const std::string& valor) {
+        std::stack<TabelaSimbolos> escoposAux = scopeStack;
+
+        while (!escoposAux.empty()) {
+            TabelaSimbolos& tabela = escoposAux.top();
+
+            if (tabela.verificaVariavelExiste(nome)) {
+                tabela.atribuiValorVariavel(nome, valor);
+                return true; // A variável foi encontrada e o valor foi atribuído
+            }
+
+            escoposAux.pop();
+        }
+
+        // Se chegar aqui, a variável não foi encontrada
+        throw std::runtime_error("Variável não declarada: " + nome);
+    }
 
     void processarBloco(const std::vector<Token> &tokens) {
         TokenType tipoAtual = NONE; // Tipo atual da variável (se definido por uma KEYWORD)
         bool constante = false;
+        bool declarandoVariavel;
+        std::stack<Token> pilhaDeclaracao;
         Token tokenProcessado;
         bool assignmenting = false;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
+
+                
                 case INTEGER:
                 case REAL:
-                case BOOLEAN:{
+                case BOOLEAN:
+                {   
                     tipoAtual = token.getType();
+                    if(declarandoVariavel){
+
+                        while (!pilhaDeclaracao.empty())
+                            {
+                                std::cout<<token.getText();
+                                Token tokenAux = pilhaDeclaracao.top();
+                                declararVariavel(tokenAux.getText(),token.getType());
+                                pilhaDeclaracao.pop();
+                            }
+                            declarandoVariavel = false;
+                        }
+                    else{
+                        std::cout<<" VALOR ";
+                        if(assignmenting){
+                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                                std::cout<<"VALOR 2 ";
+
+                                atribuirValorVariavel(tokenProcessado.getText(),token.getText());
+                                assignmenting = false;
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                case VAR:
+                {   std::cout<<"VAR";
+                    declarandoVariavel=true;
                     break;
                 }
 
@@ -300,14 +381,16 @@ public:
                 }
 
                 case IDENTIFIER: {
-                    if(scopeStack.top().verificaVariavelExiste(token.getText())){
-                        std::string valorVariavel = scopeStack.top().getValorVariavel(token.getText());
+                    if(verificaVariavelExiste(token.getText())){
+                        std::cout << "passou! "+ token.getText() << std::endl;
+
+                        std::string valorVariavel = buscarVariavel(token.getText()).getText();
                         if(assignmenting){
                             if (scopeStack.top().verificaConstante(token.getText())) {
                                 throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
                             }
-                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
-                                scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),valorVariavel);
+                            else if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                                atribuirValorVariavel(tokenProcessado.getText(),valorVariavel);
                                 assignmenting = false;
                             };
                         }
@@ -315,35 +398,100 @@ public:
                             tokenProcessado = token;
                         }
                     }else{
-                        if(tipoAtual != NONE){
-                            scopeStack.top().inserirVariavel(token.getText(),token.getType());
-                        }else{
-                            throw std::runtime_error("Tentativa de chamada de variável não declarada, na linha: "+token.getRow());
+                        if(declarandoVariavel==true){
+                            std::cout << "passou! "+ token.getText() << std::endl;
+
+                            pilhaDeclaracao.push(token);
                         }
                     }
                     constante = false;
                     break;
                 }
 
-                case NUMBER:
-                case FLOAT_NUMBER:
-                case LITERAL:{
-                    if(assignmenting){
-                        if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
-                            scopeStack.top().atribuiValorVariavel(tokenProcessado.getText(),token.getText());
-                        }
-                    }
-
-                    break;
-                }
-
                 case ASSIGNMENT:{
+                    std::cout<<"ATRIBUINDO";
                     assignmenting = true;
                     break;
                 }
-
+               
+               
+                default:
+                    break;
                 
             }
         }       
     }
 };
+
+
+// Supondo que você já tenha a implementação do Token e do AnalisadorSemantico
+
+// Função para criar um token
+Token criarToken(TokenType tipo, const std::string &texto) {
+    return Token(tipo,texto,"1");
+}
+
+// Função para executar um teste
+void executarTeste(const std::vector<Token> &tokens, bool devePassar) {
+    AnalisadorSemantico analisador;
+    try {
+        analisador.processarBloco(tokens);
+        if (devePassar) {
+            std::cout << "Teste passou!" << std::endl;
+        } else {
+            std::cerr << "Erro: Esperado falha, mas o teste passou." << std::endl;
+        }
+    } catch (const std::runtime_error &e) {
+        if (devePassar) {
+            std::cerr << "Erro: Esperado sucesso, mas ocorreu uma exceção: " << e.what() << std::endl;
+        } else {
+            std::cout << "Teste passou com exceção esperada: " << e.what() << std::endl;
+        }
+    }
+}
+
+int main() {
+    // Teste 1: Declaração e atribuição correta
+    std::vector<Token> tokens1 = {
+        criarToken(BEGIN,"Begin"),
+        criarToken(VAR, "var"),
+        criarToken(IDENTIFIER, "x"),
+        criarToken(COLON,":"),
+        criarToken(INTEGER, "int"),
+        criarToken(IDENTIFIER, "x"),
+        criarToken(ASSIGNMENT, ":="),
+        criarToken(INTEGER, "10"),
+        criarToken(BEGIN,"Begin"),
+        criarToken(IDENTIFIER,"x"),
+        criarToken(ASSIGNMENT, ":="),
+        criarToken(INTEGER,"10"),
+        criarToken(END, "End"),
+        criarToken(END, "End")
+    };
+    executarTeste(tokens1, true);
+
+    // Teste 2: Tentativa de atribuição a constante
+    std::vector<Token> tokens2 = {
+        criarToken(VAR, "var"),
+        criarToken(IDENTIFIER, "y"),
+        criarToken(COLON,":"),
+        criarToken(INTEGER, "int"),
+        criarToken(IDENTIFIER, "y"),
+        criarToken(ASSIGNMENT, ":="),
+        criarToken(INTEGER, "20"),
+        criarToken(IDENTIFIER, "y"),
+        criarToken(ASSIGNMENT, ":="),
+        criarToken(NUMBER, "30")
+    };
+    executarTeste(tokens2, false); // Deve falhar, pois 'y' é uma constante
+
+    // Teste 3: Verificação de erro ao sair do escopo global
+    std::vector<Token> tokens3 = {
+        criarToken(BEGIN, "begin"),
+        criarToken(END, "end"),
+        criarToken(END, "end") // Tentativa de sair do escopo global novamente
+    };
+    executarTeste(tokens3, false); // Deve falhar, pois não há um 'begin' correspondente
+
+    return 0;
+}
