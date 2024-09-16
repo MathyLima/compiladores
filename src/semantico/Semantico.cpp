@@ -95,15 +95,7 @@ class TabelaSimbolos{
                 return variaveis[nome].constante;
             }
             return false;
-            // throw std::runtime_error("Erro: Variável não encontrada: " + nome);
         }
-
-        void verificaInicializacao(const std::string &nome) {
-            if (verificaVariavelExiste(nome) && !variaveis[nome].inicializado) {
-                throw std::runtime_error("Erro: Variável não inicializada: " + nome);
-            }
-        }
-
 
          // Obter tipo da variável
         TokenType getTipoVariavel(const std::string &nome) {
@@ -147,6 +139,10 @@ class TabelaSimbolos{
 
         void atribuiValorVariavel(const std::string &nome,const std::string &valor){
             if(verificaVariavelExiste(nome)){
+                TokenType tipoVariavel = variaveis[nome].tipo;
+                if (!verificarTipoValor(tipoVariavel, valor)) {
+                    throw std::runtime_error("Erro: Valor '" + valor + "' não é compatível com o tipo da variável '" + nome + "'.");
+                }
                 variaveis[nome].valor = valor;
             }else {
                 throw std::runtime_error("Variável não encontrada: " + nome);
@@ -231,9 +227,9 @@ public:
         }
         // Verifica se o valor atribuído é compatível com o tipo da variável
         if (valorTipo != valorTipo2) {
-            throw std::runtime_error("Erro: Tipos incompatíveis no valor atribuído. Tipo esperado: " + // Linha nova
-                                    std::to_string(static_cast<int>(valorTipo)) + // Linha nova
-                                    ". Tipo fornecido: " + std::to_string(static_cast<int>(valorTipo2))); // Linha nova
+            throw std::runtime_error("Erro: Tipos incompatíveis no valor atribuído. Tipo esperado: " + 
+                                    std::to_string(static_cast<int>(valorTipo)) +
+                                    ". Tipo fornecido: " + std::to_string(static_cast<int>(valorTipo2)));
         }
 
 
@@ -332,6 +328,9 @@ public:
         Token tokenProcessado;
         bool assignmenting = false;
         bool procedure = false;
+        std::stack<Token> pilhaOperacoes;
+        std::stack<Token> pilhaOperandos;
+        std::string operadorAtual;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
@@ -339,40 +338,46 @@ public:
                 
                 case INTEGER:
                 case REAL:
+                case LITERAL:
                 case BOOLEAN:
                 {   
                     tipoAtual = token.getType();
+                    pilhaOperandos.push(token);
                     if(declarandoVariavel){
 
                         while (!pilhaDeclaracao.empty())
                             {
-                                std::cout<<token.getText();
                                 Token tokenAux = pilhaDeclaracao.top();
                                 declararVariavel(tokenAux.getText(),token.getType());
                                 pilhaDeclaracao.pop();
                             }
                             declarandoVariavel = false;
+                    }else if (assignmenting) {
+                        if (checkAtribuicao(tokenProcessado.getText(), tipoAtual, tipoAtual)) {
+                        atribuirValorVariavel(tokenProcessado.getText(), token.getText());
+                        assignmenting = false;
                         }
-                    else{
-                        std::cout<<" VALOR ";
-                        if(assignmenting){
-                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
-                                std::cout<<"VALOR 2 ";
-
-                                atribuirValorVariavel(tokenProcessado.getText(),token.getText());
-                                assignmenting = false;
-                            }
+                    } else if (!operadorAtual.empty()) {
+                        // Verificar se a operação é compatível
+                        TokenType tipoOperando = tipoAtual;
+                        TokenType tipoOperandos = pilhaOperacoes.top().getType();
+                        pilhaOperacoes.pop();
+                        if (!checkOperacoes(tipoOperandos, tipoOperando, tipoOperando, operadorAtual)) {
+                            throw std::runtime_error("Erro: Operação inválida entre os tipos.");
                         }
-                    }
+                        // Adicionar o resultado da operação como o novo operando
+                        tipoAtual = tipoOperando;
+                        operadorAtual.clear();
+                     }
                     break;
                 }
                 case PROCEDURE:{
                     procedure = true;
                     tipoAtual = token.getType();
+                    break;
                 }
 
-                case VAR:
-                {   std::cout<<"VAR";
+                case VAR:{   
                     declarandoVariavel=true;
                     break;
                 }
@@ -388,6 +393,8 @@ public:
 
                 case IDENTIFIER: {
                     if(verificaVariavelExiste(token.getText())){
+                        Token tipoVariavel = criarToken(scopeStack.top().getTipoVariavel(token.getText()), "");
+                        pilhaOperandos.push(tipoVariavel);
                         std::cout << "passou! "+ token.getText() << std::endl;
 
                         std::string valorVariavel = buscarVariavel(token.getText()).getText();
@@ -395,7 +402,7 @@ public:
                             if (scopeStack.top().verificaConstante(token.getText())) {
                                 throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
                             }
-                            else if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
+                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
                                 atribuirValorVariavel(tokenProcessado.getText(),valorVariavel);
                                 assignmenting = false;
                             };
@@ -406,6 +413,7 @@ public:
                         }
                         else{
                             tokenProcessado = token;
+                            pilhaOperandos.push(token);
                         }
                     }else{
                         if(declarandoVariavel){
@@ -419,11 +427,37 @@ public:
                 }
 
                 case ASSIGNMENT:{
-                    std::cout<<"ATRIBUINDO";
                     assignmenting = true;
                     break;
                 }
-               
+
+                case SEMICOLON:{
+                    // Processar toda a expressão ao encontrar um ponto e vírgula
+                    while (!pilhaOperacoes.empty()) {
+                        Token operador = pilhaOperacoes.top();
+                        pilhaOperacoes.pop();
+                        
+                        if (pilhaOperacoes.size() < 2) {
+                            throw std::runtime_error("Erro: Operação inválida, número insuficiente de operandos.");
+                        }
+                        
+                        Token operando2 = pilhaOperacoes.top();
+                        pilhaOperacoes.pop();
+                        Token operando1 = pilhaOperacoes.top();
+                        pilhaOperacoes.pop();
+
+                        TokenType tipo1 = operando1.getType();
+                        TokenType tipo2 = operando2.getType();
+
+                        if (!checkOperacoes(tipo1, tipo2, tipo1, operador.getText())) {
+                            throw std::runtime_error("Erro: Operação inválida entre os tipos.");
+                        }
+                        
+                        Token resultado = criarToken(tipo1, "");
+                        pilhaOperacoes.push(resultado);
+                    }
+                    break;
+                }
                
                 default:
                     break;
