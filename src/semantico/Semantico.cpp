@@ -95,15 +95,7 @@ class TabelaSimbolos{
                 return variaveis[nome].constante;
             }
             return false;
-            // throw std::runtime_error("Erro: Variável não encontrada: " + nome);
         }
-
-        void verificaInicializacao(const std::string &nome) {
-            if (verificaVariavelExiste(nome) && !variaveis[nome].inicializado) {
-                throw std::runtime_error("Erro: Variável não inicializada: " + nome);
-            }
-        }
-
 
          // Obter tipo da variável
         TokenType getTipoVariavel(const std::string &nome) {
