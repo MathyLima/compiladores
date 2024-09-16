@@ -336,7 +336,8 @@ public:
         Token tokenProcessado;
         bool assignmenting = false;
         bool procedure = false;
-        std::stack<Token> pilhaOperacoes; 
+        std::stack<Token> pilhaOperacoes;
+        std::stack<Token> pilhaOperandos;
         std::string operadorAtual;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
@@ -349,7 +350,7 @@ public:
                 case BOOLEAN:
                 {   
                     tipoAtual = token.getType();
-                    pilhaOperacoes.push(token);
+                    pilhaOperandos.push(token);
                     if(declarandoVariavel){
 
                         while (!pilhaDeclaracao.empty())
@@ -401,7 +402,7 @@ public:
                 case IDENTIFIER: {
                     if(verificaVariavelExiste(token.getText())){
                         Token tipoVariavel = criarToken(scopeStack.top().getTipoVariavel(token.getText()), "");
-                        pilhaOperacoes.push(tipoVariavel);
+                        pilhaOperandos.push(tipoVariavel);
                         std::cout << "passou! "+ token.getText() << std::endl;
 
                         std::string valorVariavel = buscarVariavel(token.getText()).getText();
@@ -420,7 +421,7 @@ public:
                         }
                         else{
                             tokenProcessado = token;
-                            pilhaOperacoes.push(token);
+                            pilhaOperandos.push(token);
                         }
                     }else{
                         if(declarandoVariavel){
