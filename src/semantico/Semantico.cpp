@@ -236,7 +236,6 @@ public:
                                     ". Tipo fornecido: " + std::to_string(static_cast<int>(valorTipo2))); // Linha nova
         }
 
-        scopeStack.top().verificaInicializacao(nome);
 
         return true;
     }
@@ -476,6 +475,16 @@ int main() {
         criarToken(IDENTIFIER,"x"),
         criarToken(ASSIGNMENT, ":="),
         criarToken(INTEGER,"10"),
+        criarToken(VAR, "var"),
+        criarToken(IDENTIFIER, "y"),
+        criarToken(COLON,":"),
+        criarToken(REAL, "float"),
+        criarToken(BEGIN,"Begin"),
+        criarToken(IDENTIFIER,"y"),
+        criarToken(ASSIGNMENT, ":="),
+        criarToken(REAL,"10"),
+        criarToken(END, "End"),
+
         criarToken(END, "End"),
         criarToken(END, "End")
     };
@@ -489,7 +498,7 @@ int main() {
         criarToken(INTEGER, "int"),
         criarToken(IDENTIFIER, "y"),
         criarToken(ASSIGNMENT, ":="),
-        criarToken(INTEGER, "20"),
+        criarToken(REAL, "20"),
         criarToken(IDENTIFIER, "y"),
         criarToken(ASSIGNMENT, ":="),
         criarToken(NUMBER, "30")
