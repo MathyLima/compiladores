@@ -35,6 +35,8 @@ enum TokenType
     WHILE = 112,
     DO = 113,
     NOT = 114,
+    AND =115,
+    OR = 116,
     COMMA,
     SEMICOLON,
     DOT,
@@ -47,7 +49,9 @@ enum TokenType
     RPAREN,
     EOF_TOKEN,
     TRUE,
-    FALSE
+    FALSE,
+    FOR,
+    TO
 };
 
 // Classe para token

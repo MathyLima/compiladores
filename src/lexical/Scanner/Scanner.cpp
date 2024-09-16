@@ -18,10 +18,6 @@ Scanner::Scanner(const std::string &source) : pos(0), row(1), col(0)
     {
         throw std::runtime_error("Unable to open file");
     }
-}
-
-Token Scanner::nextToken()
-{
     reservedWords = {
         {"program", "program"},
         {"var", "var"},
@@ -36,7 +32,14 @@ Token Scanner::nextToken()
         {"else", "else"},
         {"while", "while"},
         {"do", "do"},
-        {"not", "not"}};
+        {"not", "not"},
+        {"for", "for"},
+        {"to", "to"}};
+}
+
+Token Scanner::nextToken()
+{
+   
 
     state = 0;
     char currentChar;
@@ -47,6 +50,10 @@ Token Scanner::nextToken()
     {
         if (isEOF())
         {
+            if( content == ".") {
+                currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
+                return currentToken;
+            }
             currentToken = Token(TokenType::NONE, "");
             return currentToken;
         }
@@ -83,7 +90,12 @@ Token Scanner::nextToken()
                 }
                 else if (currentChar == '.')
                 {
+                
                     state = 14;
+                }
+                else if (currentChar == '{')
+                {
+                    state = 15; // Novo estado para ignorar comentários entre {}
                 }
                 else
                 {
@@ -109,18 +121,12 @@ Token Scanner::nextToken()
         case 1:
             if (isLetter(currentChar) || isDigit(currentChar) || currentChar == '_')
             {
-                // std::cout << "Lendo caractere: " << currentChar << " (conteúdo atual: " << content << ")" << std::endl;
                 content += currentChar;
-                state = 1;
             }
             else
             {
-                // std::cout << "Mudando para o estado 2. Conteúdo final do identificador: " << content << std::endl;
-                // std::cout << "\nEsse eh meu currentChar: " << currentChar << std::endl;
                 back();
                 back();
-                currentChar = nextChar();
-                // std::cout << "\nApliquei dois back e esse eh meu currentChar: " << currentChar << std::endl;
                 state = 2;
             }
             break;
@@ -133,19 +139,24 @@ Token Scanner::nextToken()
             }
             else if (content == "AND" || content == "and")
             {
-                currentToken = Token(TokenType::MULT_OPERATOR, content, std::to_string(row));
+                currentToken = Token(TokenType::AND, content, std::to_string(row));
             }
             else if (content == "OR" || content == "or")
             {
-                currentToken = Token(TokenType::ADD_OPERATOR, content, std::to_string(row));
+                currentToken = Token(TokenType::OR, content, std::to_string(row));
+            }
+            else if (content == "FOR" || content == "for")
+            {
+                currentToken = Token(TokenType::FOR, content, std::to_string(row));
+            }
+            else if (content == "TO" || content == "to")
+            {
+                currentToken = Token(TokenType::TO, content, std::to_string(row));
             }
             else
             {
                 currentToken = Token(TokenType::IDENTIFIER, content, std::to_string(row));
             }
-
-            // Aqui, o currentChar precisa ser igual a currentChar -1 posição. Como posso fazer isso com o que tem implementado aqui nesse aqruivo chat?
-            back();
             return currentToken;
 
         case 3: // Parte inteira do número
@@ -256,18 +267,9 @@ Token Scanner::nextToken()
 
             break;
         case 10:
-            if (currentChar == ';')
-            {
-                currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
-                return currentToken;
-            }
-            if (isRelationalOperator(currentChar))
-            {
-                back();
-            }
+             back(); // Retrocede para reprocessar o caractere atual
             currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
             return currentToken;
-            break;
 
         case 11:
             if (content.back() == '+' || content.back() == '-')
@@ -306,17 +308,33 @@ Token Scanner::nextToken()
                 return currentToken;
             }
         case 14:
-            if (isDigit(currentChar) || currentChar == 'E' || currentChar == 'e')
+            if(isDigit(currentChar) || currentChar == 'E' || currentChar == 'e')
             {
                 content += currentChar;
                 state = 4;
             }
             else
             {
-                back();
+                // Tratamento padrão para o ponto final (.)
                 currentToken = Token(TokenType::DELIMITER, content, std::to_string(row));
                 return currentToken;
             }
+        case 15: // Ignorar tudo entre { e }
+            while (!isEOF() && currentChar != '}')
+            {
+                currentChar = nextChar();
+            }
+            if (currentChar == '}')
+            {
+                state = 0;    // Voltar ao estado inicial
+                content = ""; // Reseta o conteúdo já que é um comentário
+            }
+            else
+            {
+                throw std::runtime_error("Unterminated comment at row " + std::to_string(row) + ", col " + std::to_string(col));
+            }
+            break;
+
         default:
             break;
         }
@@ -355,7 +373,7 @@ bool Scanner::isEquationOperator(char c)
 
 bool Scanner::isDelimiter(char c)
 {
-    return c == '(' || c == ')' || c == ';' || c == ',' || c == '.' || c == ':';
+    return c == '(' || c == ')' || c == ';' || c == ',' || c == '.' || c == ':' || c =='{' || c == '}';
 }
 
 bool Scanner::isEquationSinal(char c)
@@ -370,6 +388,11 @@ bool Scanner::isHashtag(char c)
 
 char Scanner::nextChar()
 {
+    if (isEOF())
+    {
+        return '\0'; // Retorna caractere nulo ou um valor especial para EOF
+    }
+
     char c = sourceBuffer[pos++];
     if (c == '\n')
     {
@@ -385,22 +408,19 @@ char Scanner::nextChar()
 
 void Scanner::back()
 {
-    pos--;
-
-    if (sourceBuffer[pos] == '\n')
+    if (pos > 0)
     {
-        row--;
-        col = 0;
-        size_t tempPos = pos - 1;
-        while (tempPos > 0 && sourceBuffer[tempPos] != '\n')
+        pos--;
+        char c = sourceBuffer[pos];
+        if (c == '\n')
         {
-            col++;
-            tempPos--;
+            row--;
+            // Recalcular 'col' se necessário
         }
-    }
-    else
-    {
-        col--;
+        else
+        {
+            col--;
+        }
     }
 }
 

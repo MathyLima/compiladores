@@ -32,33 +32,51 @@ struct ASTNode
 };
 
 // Para alterar o que vai para o nó, altere a Struct ASTNode e a função build_node_levels
-struct NodeLevel
-{
-    std::vector<std::vector<std::string>> levels;
+// struct NodeLevel
+// {
+//     std::vector<std::vector<std::string>> levels;
 
-    void addLevel(const std::vector<std::string> &level)
+//     void addLevel(const std::vector<std::string> &level)
+//     {
+//         levels.push_back(level);
+//     }
+
+//     void printLevels()
+//     {
+//         for (const auto &level : levels)
+//         {
+//             std::cout << "[";
+//             for (size_t i = 0; i < level.size(); ++i)
+//             {
+//                 std::cout << level[i];
+//                 if (i != level.size() - 1)
+//                 {
+//                     std::cout << ", ";
+//                 }
+//             }
+//             std::cout << "]" << std::endl;
+//         }
+//     }
+// };
+struct TokenSequence
+{
+    std::vector<Token> tokens; // Stores the linear sequence of tokens
+
+    void addTokens(const std::vector<Token> &newTokens)
     {
-        levels.push_back(level);
+        tokens.insert(tokens.end(), newTokens.begin(), newTokens.end());
     }
 
-    void printLevels()
+    void printSequence() const
     {
-        for (const auto &level : levels)
+        for (const auto &token : tokens)
         {
-            std::cout << "[";
-            for (size_t i = 0; i < level.size(); ++i)
-            {
-                std::cout << level[i];
-                if (i != level.size() - 1)
-                {
-                    std::cout << ", ";
-                }
-            }
-            std::cout << "]" << std::endl;
+            std::cout << "Type: " << token.type
+                      << ", Value: " << token.value
+                      << ", Line: " << token.line << std::endl;
         }
     }
 };
-
 class Parser
 {
 public:
@@ -94,6 +112,7 @@ private:
     ASTNode *parse_if_statement();
     ASTNode *parse_else_part();
     ASTNode *parse_while_statement();
+    ASTNode *parse_for_statement(); 
     ASTNode *parse_expression();
     ASTNode *parse_simple_expression();
     ASTNode *parse_term();
@@ -107,8 +126,9 @@ private:
 
 // Declaração das funções auxiliares
 void print_ast(ASTNode *node, std::stack<std::string> &nodeStack, int indent = 0);
-void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0);
+//void build_node_levels(ASTNode *node, NodeLevel &nodeLevels, int indent = 0);
 Token parse_token(const std::string &node_str);
-void semantic_analysis(const NodeLevel &nodeLevels);
+//void semantic_analysis(const NodeLevel &nodeLevels);
+void generate_token_sequence(ASTNode *node, TokenSequence &sequence);
 
 #endif // PARSER_H
