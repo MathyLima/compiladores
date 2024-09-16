@@ -216,7 +216,7 @@ public:
         saidaEscopo(); // Saia do escopo da função ao finalizar
     }
 
-    bool checkAtribuicao(const std::string &nome, TokenType valorTipo, const std::string &valor) {
+    bool checkAtribuicao(const std::string &nome, TokenType valorTipo, TokenType valorTipo2) {
         TokenType varTipo = buscarVariavel(nome).getType();
 
         
@@ -230,8 +230,10 @@ public:
                                      ". Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
         }
         // Verifica se o valor atribuído é compatível com o tipo da variável
-        if (!verificarTipoValor(valorTipo, valor)) {
-            throw std::runtime_error("Erro: Valor '" + valor + "' não corresponde ao tipo da variável '" + nome + "'.");
+        if (valorTipo != valorTipo2) {
+            throw std::runtime_error("Erro: Tipos incompatíveis no valor atribuído. Tipo esperado: " + // Linha nova
+                                    std::to_string(static_cast<int>(valorTipo)) + // Linha nova
+                                    ". Tipo fornecido: " + std::to_string(static_cast<int>(valorTipo2))); // Linha nova
         }
 
         scopeStack.top().verificaInicializacao(nome);
@@ -326,7 +328,7 @@ public:
     void processarBloco(const std::vector<Token> &tokens) {
         TokenType tipoAtual = NONE; // Tipo atual da variável (se definido por uma KEYWORD)
         bool constante = false;
-        bool declarandoVariavel;
+        bool declarandoVariavel = false;
         std::stack<Token> pilhaDeclaracao;
         Token tokenProcessado;
         bool assignmenting = false;
@@ -354,7 +356,7 @@ public:
                     else{
                         std::cout<<" VALOR ";
                         if(assignmenting){
-                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                            if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
                                 std::cout<<"VALOR 2 ";
 
                                 atribuirValorVariavel(tokenProcessado.getText(),token.getText());
@@ -389,7 +391,7 @@ public:
                             if (scopeStack.top().verificaConstante(token.getText())) {
                                 throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
                             }
-                            else if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getText())){
+                            else if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
                                 atribuirValorVariavel(tokenProcessado.getText(),valorVariavel);
                                 assignmenting = false;
                             };
@@ -398,7 +400,7 @@ public:
                             tokenProcessado = token;
                         }
                     }else{
-                        if(declarandoVariavel==true){
+                        if(declarandoVariavel){
                             std::cout << "passou! "+ token.getText() << std::endl;
 
                             pilhaDeclaracao.push(token);
