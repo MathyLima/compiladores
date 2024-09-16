@@ -330,6 +330,7 @@ public:
         std::stack<Token> pilhaDeclaracao;
         Token tokenProcessado;
         bool assignmenting = false;
+        bool procedure = false;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
@@ -364,6 +365,10 @@ public:
                     }
                     break;
                 }
+                case PROCEDURE:{
+                    procedure = true;
+                    tipoAtual = token.getType();
+                }
 
                 case VAR:
                 {   std::cout<<"VAR";
@@ -393,6 +398,10 @@ public:
                                 atribuirValorVariavel(tokenProcessado.getText(),valorVariavel);
                                 assignmenting = false;
                             };
+                        }
+                        else if(procedure){
+                            declararVariavel(token.getText(),tipoAtual);
+                            entradaEscopo();
                         }
                         else{
                             tokenProcessado = token;
