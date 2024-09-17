@@ -236,8 +236,6 @@ public:
         return true;
     }
 
-
-
         // Função para verificar operações relacionais e lógicas
     bool checkOperacoes(TokenType tipo1, TokenType tipo2, TokenType valorTipo, const std::string &operador) {
     
@@ -328,15 +326,14 @@ public:
         Token tokenProcessado;
         bool assignmenting = false;
         bool procedure = false;
-        bool operacao = false;
-        std::stack<Token> pilhaOperacoes;
+        bool comparacao = false;
+        TokenType operadorAtual;
         std::stack<Token> pilhaOperandos;
         // std::string operadorAtual;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
 
-                
                 case INTEGER:
                 case REAL:
                 case LITERAL:
@@ -354,13 +351,8 @@ public:
                             }
                             declarandoVariavel = false;
                     }else if (assignmenting) {
-                        if (checkAtribuicao(tokenProcessado.getText(), tipoAtual, tipoAtual)) {
-                        atribuirValorVariavel(tokenProcessado.getText(), token.getText());
-                        assignmenting = false;
-                        }
-                    } else if (operacao) {
-                        pilhaOperacoes.push(token);
-                     }
+                        pilhaOperandos.push(token);
+                    } 
                     break;
                 }
                 case PROCEDURE:{
@@ -375,7 +367,7 @@ public:
                 }
 
                 case EQUAL_OPERATOR:{
-                    operacao = true;
+                    comparacao = true;
                     break;
                 }
 
@@ -384,6 +376,18 @@ public:
                     break;
                 }
                 case END:{
+                    while (!pilhaOperandos.empty())
+                        {
+                            Token op = pilhaOperandos.top();
+                            pilhaOperandos.pop();
+                            if(op.getType()!= INTEGER){
+                                if(tokenProcessado.getType() == INTEGER){
+                                    throw std::runtime_error("Operacoes entre variáveis inválida");
+                                }
+                            }                        
+                        
+                        }  
+
                     saidaEscopo();
                     break;
                 }
@@ -392,7 +396,6 @@ public:
                     if(verificaVariavelExiste(token.getText())){
                         Token tipoVariavel = criarToken(scopeStack.top().getTipoVariavel(token.getText()), "");
                         pilhaOperandos.push(tipoVariavel);
-                        std::cout << "passou! "+ token.getText() << std::endl;
 
                         std::string valorVariavel = buscarVariavel(token.getText()).getText();
                         if(assignmenting){
@@ -400,8 +403,7 @@ public:
                                 throw std::runtime_error("Erro: Tentativa de modificação da constante '" + token.getText() + "'.");
                             }
                             if(checkAtribuicao(tokenProcessado.getText(),token.getType(),token.getType())){
-                                atribuirValorVariavel(tokenProcessado.getText(),valorVariavel);
-                                assignmenting = false;
+                                pilhaOperandos.push(token);
                             };
                         }
                         else if(procedure){
@@ -414,7 +416,6 @@ public:
                         }
                     }else{
                         if(declarandoVariavel){
-                            std::cout << "passou! "+ token.getText() << std::endl;
 
                             pilhaDeclaracao.push(token);
                         }
@@ -428,42 +429,44 @@ public:
                 }
 
                 case SEMICOLON: {
-                   if(operacao){
-                    operacao = false;
+                  
+                    if(pilhaOperandos.size() > 1){
 
-                    while (!pilhaOperacoes.empty())
-                    {
-                        if(pilhaOperacoes.size() < 3){
-                            throw std::runtime_error("Erro: numero de operadores insuficientes");
-                        }
-
-                        Token op1 = pilhaOperacoes.top();
-                        pilhaOperacoes.pop();
-                        Token simboloOp = pilhaOperacoes.top();
-                        pilhaOperacoes.pop();
-                        Token op2 = pilhaOperacoes.top();
-                        pilhaOperacoes.pop();
-
-                        checkOperacoes(op1.getType(),op2.getType(),tokenProcessado.getType(),simboloOp.getText());
-                        
-
+                        while (!pilhaOperandos.empty())
+                            {
+                                Token op = pilhaOperandos.top();
+                                pilhaOperandos.pop();
+                                if(op.getType()==REAL){
+                                    if(tokenProcessado.getType() == INTEGER){
+                                        throw std::runtime_error("Operacoes entre variáveis inválida");
+                                    }
+                                }                        
+                            
+                            }  
+                    }
+                    else{
+                        if(checkAtribuicao(tokenProcessado.getText(),pilhaOperandos.top().getType(),tokenProcessado.getType())){
+                            atribuirValorVariavel(tokenProcessado.getText(),pilhaOperandos.top().getText());
+                        };
                         
                     }
-                    
-
-                   }
+                    assignmenting = false;
+        
                    break;
-                    }
+                }
+                
                 case PLUS:
                 case MINUS:
                 case MULTIPLY:
                 case DIVIDE:{
-                    if(operacao){
-                        pilhaOperacoes.push(token);
-                    }
+           
+                    operadorAtual = token.getType();
+           
                     break;
                 }
 
+                case LPAREN:
+                    
 
                 default:
                     break;
