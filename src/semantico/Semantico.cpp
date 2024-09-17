@@ -359,6 +359,8 @@ public:
                 } else if (assignmenting) {
                     std::cout << "Atribuindo valor: " << token.getText() << "\n";
                     pilhaOperandos.push(token);
+                }else if(booleanOp){
+                    pilhaOperandos.push(token);
                 }
                 break;
             }
@@ -424,7 +426,10 @@ public:
                         if (checkAtribuicao(tokenProcessado.getText(), tipoVariavelExiste)) {
                             pilhaOperandos.push(token);
                         }
-                    }  else {
+                    }  else if(declarandoVariavel){
+                        throw std::runtime_error("Error: tentativa de redeclaracao de variável num mesmo escopo");
+                    }
+                    else {
                         tokenProcessado = token;
                         // pilhaOperandos.push(token);
                     }
@@ -455,12 +460,19 @@ public:
             case SEMICOLON: {
                 std::cout << "Ponto e vírgula detectado, finalizando instrução\n";
                 if (assignmenting) {
+                    Token tokenProcessadoFinal = buscarVariavel(tokenProcessado.getText());
                     if (pilhaOperandos.size() > 1) {
+                        std::cout<<"\n\n\n";
+                        std::cout<<tokenProcessadoFinal.getText();
+                        std::cout<<tokenProcessadoFinal.getType();
+
+                        std::cout<<"\n\n\n";
+                        
                         while (!pilhaOperandos.empty()) {
                             Token op = pilhaOperandos.top();
                             pilhaOperandos.pop();
                             std::cout << "Verificando tipo: " << op.getType() << "\n";
-                            if (op.getType() == REAL && tokenProcessado.getType() == INTEGER) {
+                            if (op.getType() == REAL && tokenProcessadoFinal.getType() == INTEGER) {
                                 throw std::runtime_error("Operações entre variáveis inválidas");
                             }
                         }
@@ -486,10 +498,10 @@ public:
                 break;
 
             case LOGICAL_OPERATOR:
-                // if (booleanOp) {
-                //     pilhaOperandos.push(token);
-                //     std::cout << "Operador lógico empilhado: " << token.getText() << "\n";
-                // }
+                if (booleanOp) {
+                    pilhaOperandos.push(token);
+                    std::cout << "Operador lógico empilhado: " << token.getText() << "\n";
+                }
                 break;
 
             case AND:
@@ -500,22 +512,66 @@ public:
             }
 
             case RPAREN: {
-                bool booOp = false;
+               
+                std::string operadorLogico;
                 std::cout << "Fechamento de parênteses detectado\n";
-                if (booleanOp) {
-                    while (!pilhaOperandos.empty()) {
-                        if (pilhaOperandos.top().getType() == LOGICAL_OPERATOR) {
-                            booOp = true;
+                if(booleanOp){
+                    std::stack<Token> pilhaAux = pilhaOperandos;
+                        // Verifica se a pilha está vazia
+                    if (pilhaAux.empty()) {
+                        throw std::runtime_error("Erro: Pilha vazia no fechamento de parênteses.");
+                    }
+
+                    Token tokenAnterior = pilhaAux.top();
+                    if(verificaVariavelExiste(pilhaAux.top().getText())){
+                        tokenAnterior = buscarVariavel(pilhaAux.top().getText());
+                    }
+                    pilhaAux.pop();
+                    // Loop para verificar a sequência de tokens (operandos e operadores)
+                        while (!pilhaAux.empty()) {
+                            Token tokenAtual = pilhaAux.top();
+                            if(verificaVariavelExiste(pilhaAux.top().getText())){
+                            tokenAtual = buscarVariavel(pilhaAux.top().getText());
+                            }
+                            pilhaAux.pop();
+                            std::cout<<tokenAtual.getText();
+                            std::cout<<"\n";
+                            // Verifica se o token anterior era um número (real ou inteiro)
+                            if (tokenAnterior.getType() == NUMBER) {
+                                // Após um número, esperamos um operador relacional
+                                if (tokenAtual.getType() != REL_OPERATOR) {
+                                    throw std::runtime_error("Erro: Operador relacional esperado após número.");
+                                }
+                            }
+                            // Verifica se o token anterior era um operador relacional
+                            else if (tokenAnterior.getType() == REL_OPERATOR) {
+                                // Após um operador relacional, esperamos um número (real ou inteiro)
+                                if (tokenAtual.getType() != NUMBER) {
+                                    throw std::runtime_error("Erro: Número esperado após operador relacional.");
+                                }
+                            }
+                            // Verifica se o token anterior era um booleano
+                            else if (tokenAnterior.getType() == BOOLEAN) {
+                                // Após um booleano, esperamos um operador lógico
+                                std::cout<<"\n\n\n";
+                                std::cout<<tokenAtual.getType();
+                                if (tokenAtual.getType() != LOGICAL_OPERATOR) {
+                                    throw std::runtime_error("Erro: Operador lógico esperado após booleano.");
+                                }
+                            }
+                            // Verifica se o token anterior era um operador lógico
+                            else if (tokenAnterior.getType() == LOGICAL_OPERATOR) {
+                                // Após um operador lógico, esperamos um booleano
+                                if (tokenAtual.getType() != BOOLEAN) {
+                                    throw std::runtime_error("Erro: Booleano esperado após operador lógico.");
+                                }
+                            }
+
+                            // Atualiza o token anterior para o próximo loop
+                            tokenAnterior = tokenAtual;
                         }
-                        pilhaOperandos.pop();
                     }
-                    if (booOp) {
-                        pilhaBooleana.push(criarToken(BOOLEAN, ""));
-                        std::cout << "Expressão booleana processada\n";
-                    }
-                    booleanOp = false;
-                    booOp = false;
-                } else if (procedure) {
+                else if (procedure) {
                     std::cout << "Saindo do modo procedure\n";
                     procedure = false;
                 }
@@ -530,7 +586,12 @@ public:
                 break;
             }
 
-            default:
+            default: criarToken(VAR, "var"),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(COLON, ":"),
+    criarToken(BOOLEAN, "bool"),
+    criarToken(SEMICOLON, ";"),
+
                 std::cout << "Token não processado: " << token.getText() << "\n";
                 break;
         }
@@ -755,151 +816,235 @@ int main() {
 
 //     };
 // executarTeste(tokens6, false); // Espera sucesso, se 'x' for 35 e 'y' for 25 após o teste
-std::vector<Token> tokensEscopo = {
-    // Declaração de variáveis no escopo global
-    criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "x"),
-    criarToken(COLON, ":"),
-    criarToken(INTEGER, "integer"), // Declara 'x' como inteiro no escopo global
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "y"),
-    criarToken(COLON, ":"),
-    criarToken(INTEGER, "integer"), // Declara 'y' como inteiro no escopo global
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "x"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(INTEGER, "5"), // Atribui valor 5 a 'x' no escopo global
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "y"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(INTEGER, "10"), // Atribui valor 10 a 'y' no escopo global
-    criarToken(SEMICOLON, ";"),
-
-    // Declaração de uma procedure
-    criarToken(PROCEDURE, "procedure"),
-    criarToken(IDENTIFIER, "escopoTeste"), // Declara a procedure 'escopoTeste'
-    criarToken(LPAREN, "("),
-    criarToken(IDENTIFIER, "a"),
-    criarToken(COLON, ":"),
-    criarToken(INTEGER, "integer"), // Declara parâmetro 'a' como inteiro
-    criarToken(RPAREN, ")"),
-    criarToken(SEMICOLON, ";"),
-
-
-    // Variável local 'z' declarada dentro da procedure
-    criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "z"),
-    criarToken(COLON, ":"),
-    criarToken(INTEGER, "integer"), // Declara 'z' como inteiro no escopo local
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "z"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(INTEGER, "20"), // Atribui valor 20 a 'z' no escopo local
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "x"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(INTEGER, "15"), // Atribui valor 15 a 'x' (variável do escopo global)
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "y"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(IDENTIFIER, "z"), // Atribui 'y := z', verificando escopo (deve pegar valor local de 'z')
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(END, "end"), // Fim da procedure
-    
-    criarToken(SEMICOLON, "."),
-
-    // Chamada da procedure com argumento
-    criarToken(IDENTIFIER, "escopoTeste"),
-    criarToken(LPAREN, "("),
-    criarToken(IDENTIFIER, "x"), // Chama a procedure 'escopoTeste' passando 'x'
-    criarToken(RPAREN, ")"),
-    criarToken(SEMICOLON, ";"),
-    
-    // Tentativa de usar a variável 'z' no escopo global (deve causar erro)
-    criarToken(IDENTIFIER, "z"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(INTEGER, "30"), // Erro: 'z' não é visível no escopo global
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(END, "end"), // Fim do programa principal
-    criarToken(DOT, ".")
-};
-executarTeste(tokensEscopo,false);
-
-return 0;
-}
-// std::vector<Token> tokens5 = {
-//     criarToken(VAR, "var"),
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara x como inteiro no escopo global
-//     criarToken(SEMICOLON, ";"),
+// std::vector<Token> tokensEscopo = {
+//     // Declaração de variáveis no escopo global
+//     criarToken(VAR,       "var"),
+//     criarToken(IDENTIFIER,  "x"),
+//     criarToken(COLON,       ":"),
+//     criarToken(INTEGER,"integer"), // Declara 'x' como inteiro no escopo global
+//     criarToken(SEMICOLON,   ";"),
 
 //     criarToken(VAR, "var"),
 //     criarToken(IDENTIFIER, "y"),
 //     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara y como inteiro no escopo global
+//     criarToken(INTEGER, "integer"), // Declara 'y' como inteiro no escopo global
 //     criarToken(SEMICOLON, ";"),
 
 //     criarToken(IDENTIFIER, "x"),
 //     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "5"), // Atribui valor 5 a x
+//     criarToken(INTEGER, "5"), // Atribui valor 5 a 'x' no escopo global
 //     criarToken(SEMICOLON, ";"),
 
 //     criarToken(IDENTIFIER, "y"),
 //     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "10"), // Atribui valor 10 a y
+//     criarToken(INTEGER, "10"), // Atribui valor 10 a 'y' no escopo global
 //     criarToken(SEMICOLON, ";"),
 
+//     // Declaração de uma procedure
 //     criarToken(PROCEDURE, "procedure"),
-//     criarToken(IDENTIFIER, "somar"), // Declara a procedure 'somar'
+//     criarToken(IDENTIFIER, "escopoTeste"), // Declara a procedure 'escopoTeste'
 //     criarToken(LPAREN, "("),
 //     criarToken(IDENTIFIER, "a"),
 //     criarToken(COLON, ":"),
 //     criarToken(INTEGER, "integer"), // Declara parâmetro 'a' como inteiro
-//     criarToken(SEMICOLON, ";"),
-//     criarToken(IDENTIFIER, "b"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara parâmetro 'b' como inteiro
 //     criarToken(RPAREN, ")"),
 //     criarToken(SEMICOLON, ";"),
 
-//     criarToken(BEGIN, "begin"), // Início do corpo da procedure
+
+//     // Variável local 'z' declarada dentro da procedure
 //     criarToken(VAR, "var"),
-//     criarToken(IDENTIFIER, "resultado"),
+//     criarToken(IDENTIFIER, "z"),
 //     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara 'resultado' como inteiro
+//     criarToken(INTEGER, "integer"), // Declara 'z' como inteiro no escopo local
 //     criarToken(SEMICOLON, ";"),
 
-//     criarToken(IDENTIFIER, "resultado"),
+//     criarToken(IDENTIFIER, "z"),
 //     criarToken(ASSIGNMENT, ":="),
-//     criarToken(IDENTIFIER, "a"),
-//     criarToken(PLUS, "+"),
-//     criarToken(IDENTIFIER, "b"), // Atribui 'resultado := a + b'
+//     criarToken(INTEGER, "20"), // Atribui valor 20 a 'z' no escopo local
+//     criarToken(SEMICOLON, ";"),
+
+//     criarToken(IDENTIFIER, "x"),
+//     criarToken(ASSIGNMENT, ":="),
+//     criarToken(INTEGER, "15"), // Atribui valor 15 a 'x' (variável do escopo global)
+//     criarToken(SEMICOLON, ";"),
+
+//     criarToken(IDENTIFIER, "y"),
+//     criarToken(ASSIGNMENT, ":="),
+//     criarToken(IDENTIFIER, "z"), // Atribui 'y := z', verificando escopo (deve pegar valor local de 'z')
 //     criarToken(SEMICOLON, ";"),
 
 //     criarToken(END, "end"), // Fim da procedure
-//     criarToken(SEMICOLON, ";"),
-//     criarToken(PROCEDURE,"procedure"),
-//     criarToken(IDENTIFIER, "somar"),
+    
+//     criarToken(SEMICOLON, "."),
+
+//     // Chamada da procedure com argumento
+//     criarToken(IDENTIFIER, "escopoTeste"),
 //     criarToken(LPAREN, "("),
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(COMMA, ","),
-//     criarToken(IDENTIFIER, "y"), // Chamada da procedure 'somar(x, y)'
+//     criarToken(IDENTIFIER, "x"), // Chama a procedure 'escopoTeste' passando 'x'
 //     criarToken(RPAREN, ")"),
+//     criarToken(SEMICOLON, ";"),
+    
+//     // Tentativa de usar a variável 'z' no escopo global (deve causar erro)
+//     criarToken(IDENTIFIER, "z"),
+//     criarToken(ASSIGNMENT, ":="),
+//     criarToken(INTEGER, "30"), // Erro: 'z' não é visível no escopo global
 //     criarToken(SEMICOLON, ";"),
 
 //     criarToken(END, "end"), // Fim do programa principal
 //     criarToken(DOT, ".")
 // };
+// executarTeste(tokensEscopo,false);
 
-// executarTeste(tokens5, true); // Espera sucesso, se 'x' for 35 e 'y' for 25 após o teste
+//   std::vector<Token> tokens5 = {
+//         // Declaração de variáveis
+//         criarToken(VAR, "var"),
+//         criarToken(IDENTIFIER, "x"),
+//         criarToken(COLON, ":"),
+//         criarToken(INTEGER, "int"),
+//         criarToken(SEMICOLON, ";"),
 
+//         criarToken(VAR, "var"),
+//         criarToken(IDENTIFIER, "y"),
+//         criarToken(COLON, ":"),
+//         criarToken(INTEGER, "int"),
+//         criarToken(SEMICOLON, ";"),
+
+//         criarToken(VAR, "var"),
+//         criarToken(IDENTIFIER, "z"),
+//         criarToken(COLON, ":"),
+//         criarToken(INTEGER, "int"),
+//         criarToken(SEMICOLON, ";"),
+
+//         // Atribuições e operações matemáticas
+//         criarToken(IDENTIFIER, "x"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(INTEGER, "10"),
+//         criarToken(PLUS, "+"),
+//         criarToken(INTEGER, "5"),
+//         criarToken(MINUS, "-"),
+//         criarToken(INTEGER, "3"),
+//         criarToken(MULTIPLY, "*"),
+//         criarToken(INTEGER, "2"),
+//         criarToken(DIVIDE, "/"),
+//         criarToken(INTEGER, "4"),
+//         criarToken(SEMICOLON, ";"),
+
+//         // Atribuições e operações booleanas
+//         criarToken(IDENTIFIER, "y"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(BOOLEAN, "true"),
+//         criarToken(AND, "and"),
+//         criarToken(BOOLEAN, "false"),
+//         criarToken(SEMICOLON, ";"),
+
+//         criarToken(IDENTIFIER, "z"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(BOOLEAN, "true"),
+//         criarToken(OR, "or"),
+//         criarToken(BOOLEAN, "false"),
+//         criarToken(SEMICOLON, ";"),
+
+//         // Outras operações
+//         criarToken(IDENTIFIER, "x"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(INTEGER, "15"),
+//         criarToken(PLUS, "+"),
+//         criarToken(IDENTIFIER, "y"),
+//         criarToken(SEMICOLON, ";"),
+
+//         criarToken(IDENTIFIER, "y"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(NOT, "not"),
+//         criarToken(BOOLEAN, "true"),
+//         criarToken(SEMICOLON, ";")
+//     };
+// executarTeste(tokens5,true);
+
+// std::vector<Token> tokensMatematicos = {
+//     criarToken(VAR, "var"),
+//     criarToken(IDENTIFIER, "x"),
+//     criarToken(COLON, ":"),
+//     criarToken(INTEGER, "int"), // Declara x como inteiro no escopo global
+//     criarToken(SEMICOLON, ";"),
+
+//     criarToken(IDENTIFIER, "x"),
+//     criarToken(ASSIGNMENT, ":="),
+//     criarToken(INTEGER, "10"),
+//     criarToken(SEMICOLON, ";"),
+
+//     criarToken(IDENTIFIER, "x"),
+//     criarToken(ASSIGNMENT, ":="),
+//     criarToken(INTEGER, "10.5"), // Tentativa de atribuir um REAL a uma variável INTEGER
+//     criarToken(PLUS,"+"),
+//     criarToken(INTEGER,"10"),
+//     criarToken(PLUS,"+"),
+//     criarToken(INTEGER,"10"),
+//     criarToken(PLUS,"+"),
+//     criarToken(REAL,"10.5"),
+//     criarToken(SEMICOLON, ";"), // Deve gerar erro de tipo
+// };
+
+// executarTeste(tokensMatematicos,false);
+
+// std::vector<Token> testeBasico = {
+//     criarToken(IF, "if"),
+//     criarToken(LPAREN, "("),
+//     criarToken(INTEGER, "10"),
+//     criarToken(LOGICAL_OPERATOR, "<"),
+//     criarToken(INTEGER, "9"),
+//     criarToken(RPAREN, ")"),
+//     criarToken(AND, "and"),
+//     criarToken(LPAREN, "("),
+//     criarToken(INTEGER, "1"),
+//     criarToken(LOGICAL_OPERATOR, ">"),
+//     criarToken(INTEGER, "9"),
+//     criarToken(RPAREN, ")"),
+//     criarToken(THEN, "then"),
+// };
+
+// executarTeste(testeBasico,true);
+
+std::vector<Token> testeErroTipo = {
+    // Declaração das variáveis
+    criarToken(VAR, "var"),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(IDENTIFIER,"y"),
+    criarToken(IDENTIFIER,"z"),
+    criarToken(COLON, ":"),
+    criarToken(BOOLEAN, "bool"),
+    criarToken(SEMICOLON, ";"),
+
+
+    criarToken(IDENTIFIER,"z"),
+    criarToken(ASSIGNMENT,":="),
+    criarToken(BOOLEAN,"false"),
+    criarToken(SEMICOLON, ";"),
+
+    // Atribuições
+    criarToken(IDENTIFIER, "x"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(BOOLEAN, "true"),
+    criarToken(SEMICOLON, ";"),
+
+    criarToken(IDENTIFIER, "y"),
+    criarToken(ASSIGNMENT, ":="),
+    criarToken(BOOLEAN, "false"),
+    criarToken(SEMICOLON, ";"),
+
+    // Expressão condicional com erro de tipo
+    criarToken(IF, "if"),
+    criarToken(LPAREN, "("),
+    criarToken(IDENTIFIER, "x"),
+    criarToken(LOGICAL_OPERATOR, "=="),
+    criarToken(BOOLEAN, "true"),
+    criarToken(AND, "and"),
+    criarToken(IDENTIFIER, "y"),
+    criarToken(LOGICAL_OPERATOR, "=="),
+    criarToken(BOOLEAN, "false"),
+    criarToken(RPAREN, ")"),
+    criarToken(THEN, "then"),
+};
+
+executarTeste(testeErroTipo,false);
+return 0;
+}

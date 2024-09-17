@@ -14,7 +14,6 @@ struct Simbolo
 {
     TokenType tipo; // Usando TokenType em vez de Tipo
     bool inicializado;
-    bool constante;
     std::string valor;
 };
 
