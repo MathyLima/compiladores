@@ -328,9 +328,10 @@ public:
         Token tokenProcessado;
         bool assignmenting = false;
         bool procedure = false;
+        bool operacao = false;
         std::stack<Token> pilhaOperacoes;
         std::stack<Token> pilhaOperandos;
-        std::string operadorAtual;
+        // std::string operadorAtual;
         for (size_t i = 0; i < tokens.size(); ++i) {
             const auto &token = tokens[i];
             switch (token.getType()) {
@@ -357,17 +358,8 @@ public:
                         atribuirValorVariavel(tokenProcessado.getText(), token.getText());
                         assignmenting = false;
                         }
-                    } else if (!operadorAtual.empty()) {
-                        // Verificar se a operação é compatível
-                        TokenType tipoOperando = tipoAtual;
-                        TokenType tipoOperandos = pilhaOperacoes.top().getType();
-                        pilhaOperacoes.pop();
-                        if (!checkOperacoes(tipoOperandos, tipoOperando, tipoOperando, operadorAtual)) {
-                            throw std::runtime_error("Erro: Operação inválida entre os tipos.");
-                        }
-                        // Adicionar o resultado da operação como o novo operando
-                        tipoAtual = tipoOperando;
-                        operadorAtual.clear();
+                    } else if (operacao) {
+                        pilhaOperacoes.push(token);
                      }
                     break;
                 }
@@ -379,6 +371,11 @@ public:
 
                 case VAR:{   
                     declarandoVariavel=true;
+                    break;
+                }
+
+                case EQUAL_OPERATOR:{
+                    operacao = true;
                     break;
                 }
 
@@ -422,7 +419,6 @@ public:
                             pilhaDeclaracao.push(token);
                         }
                     }
-                    constante = false;
                     break;
                 }
 
@@ -431,34 +427,44 @@ public:
                     break;
                 }
 
-                case SEMICOLON:{
-                    // Processar toda a expressão ao encontrar um ponto e vírgula
-                    while (!pilhaOperacoes.empty()) {
-                        Token operador = pilhaOperacoes.top();
-                        pilhaOperacoes.pop();
-                        
-                        if (pilhaOperacoes.size() < 2) {
-                            throw std::runtime_error("Erro: Operação inválida, número insuficiente de operandos.");
+                case SEMICOLON: {
+                   if(operacao){
+                    operacao = false;
+
+                    while (!pilhaOperacoes.empty())
+                    {
+                        if(pilhaOperacoes.size() < 3){
+                            throw std::runtime_error("Erro: numero de operadores insuficientes");
                         }
-                        
-                        Token operando2 = pilhaOperacoes.top();
+
+                        Token op1 = pilhaOperacoes.top();
                         pilhaOperacoes.pop();
-                        Token operando1 = pilhaOperacoes.top();
+                        Token simboloOp = pilhaOperacoes.top();
+                        pilhaOperacoes.pop();
+                        Token op2 = pilhaOperacoes.top();
                         pilhaOperacoes.pop();
 
-                        TokenType tipo1 = operando1.getType();
-                        TokenType tipo2 = operando2.getType();
-
-                        if (!checkOperacoes(tipo1, tipo2, tipo1, operador.getText())) {
-                            throw std::runtime_error("Erro: Operação inválida entre os tipos.");
-                        }
+                        checkOperacoes(op1.getType(),op2.getType(),tokenProcessado.getType(),simboloOp.getText());
                         
-                        Token resultado = criarToken(tipo1, "");
-                        pilhaOperacoes.push(resultado);
+
+                        
+                    }
+                    
+
+                   }
+                   break;
+                    }
+                case PLUS:
+                case MINUS:
+                case MULTIPLY:
+                case DIVIDE:{
+                    if(operacao){
+                        pilhaOperacoes.push(token);
                     }
                     break;
                 }
-               
+
+
                 default:
                     break;
                 
