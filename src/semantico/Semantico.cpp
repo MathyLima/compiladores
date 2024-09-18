@@ -318,8 +318,8 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
     bool procedure = false;
     bool comparacao = false;
     bool booleanOp = false;
-    std::stack<Token> pilhaOperandos;
     std::stack<Token> pilhaBooleana;
+    std::stack<Token> pilhaOperandos;
 
     for (size_t i = 0; i < tokens.size(); ++i)
     {
@@ -745,6 +745,7 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
                                     throw std::runtime_error("Erro: Booleano esperado após operador lógico linha("+token.getRow()+").");
                                 }
                             }
+                            
 
                             // Atualiza o token anterior para o próximo loop
                             tokenAnterior = tokenAtual;
@@ -756,6 +757,7 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
                         }
                         
             }
+
                 break;
             }
 
@@ -765,6 +767,11 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
             { 
                 declarandoVariavel = true;
                 std::cout << "Entrada de parâmetros para procedimento linha("+token.getRow()+")\n";
+            }
+            if(!pilhaOperandos.empty()){
+                if(pilhaOperandos.top().getType() == LOGICAL_OPERATOR){
+                    pilhaOperandos.pop();
+                }
             }
             break;
         }
@@ -776,12 +783,6 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
     
     }
     std::cout<<"\n\n\n SEMANTICO BEM SUCEDIDO\n\n\n";
-}
-
-// Função para criar um token
-Token criarToken(TokenType tipo, const std::string &texto)
-{
-    return Token(tipo, texto, "1");
 }
 
 // Função para executar um teste
