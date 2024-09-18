@@ -1,3 +1,6 @@
+// semantico.cpp
+
+#include "Semantico.h"
 #include <iostream>
 #include <stack>
 #include <unordered_map>
@@ -5,322 +8,295 @@
 #include <vector>
 #include <stdexcept>
 #include "../lexical/Token/Token.h"
-// #include "Semantico.h"
 
+// Implementação da classe TabelaSimbolos
 
-struct Simbolo
+void TabelaSimbolos::inserirVariavel(const std::string &nome, TokenType tipo, const std::string &valor, bool constante)
 {
-    TokenType tipo; // Usando TokenType em vez de Tipo
-    bool inicializado;
-    bool constante;
-    std::string valor;
-};
-
-struct Funcao
-{
-    TokenType tipoRetorno;
-    std::vector<TokenType> parametros;
-};
-
-struct Procedimento
-{
-    std::vector<TokenType> parametros;
-};
-
-bool verificarTipoValor(TokenType tipo, const std::string &valor,TokenType tokenAtribuido) {
-    try {
-        if (tipo != tokenAtribuido) {
-            return false;
-        } 
-        return true;
-            }
-        catch (...) {
-            return false;
-        }
+    variaveis[nome] = {tipo, !valor.empty(), constante, valor};
 }
 
+void TabelaSimbolos::inserirFuncao(const std::string &nome, TokenType tipoRetorno, const std::vector<TokenType> &parametros)
+{
+    if (verificaFuncaoExiste(nome))
+    {
+        throw std::runtime_error("Erro: Função com o nome '" + nome + "' já existe.");
+    }
+    funcoes[nome] = {tipoRetorno, parametros};
+}
 
-class TabelaSimbolos{
-    private:
-        std::unordered_map<std::string,Simbolo> variaveis;
-        std::unordered_map<std::string,Funcao> funcoes;
-        std::unordered_map<std::string,Procedimento> procedimentos;
-    public:
-        //insere uma varivel com valor opcional na tabela
-        void inserirVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "", bool constante = false) {
-            
-            variaveis[nome] = {tipo, !valor.empty(), constante, valor};
+void TabelaSimbolos::inserirProcedimento(const std::string &nome, const std::vector<TokenType> &parametros)
+{
+    if (verificaProcedimentoExiste(nome))
+    {
+        throw std::runtime_error("Erro: Procedimento com o nome '" + nome + "' já existe.");
+    }
+    procedimentos[nome] = {parametros};
+}
+
+bool TabelaSimbolos::verificaVariavelExiste(const std::string &nome)
+{
+    return variaveis.find(nome) != variaveis.end();
+}
+
+bool TabelaSimbolos::verificaFuncaoExiste(const std::string &nome)
+{
+    return funcoes.find(nome) != funcoes.end();
+}
+
+bool TabelaSimbolos::verificaProcedimentoExiste(const std::string &nome)
+{
+    return procedimentos.find(nome) != procedimentos.end();
+}
+
+bool TabelaSimbolos::verificaConstante(const std::string &nome)
+{
+    if (verificaVariavelExiste(nome))
+    {
+        return variaveis[nome].constante;
+    }
+    return false;
+}
+
+TokenType TabelaSimbolos::getTipoVariavel(const std::string &nome)
+{
+    if (verificaVariavelExiste(nome))
+    {
+        return variaveis[nome].tipo;
+    }
+    return TokenType::NONE;
+}
+
+std::string TabelaSimbolos::getValorVariavel(const std::string &nome)
+{
+    if (verificaVariavelExiste(nome))
+    {
+        return variaveis[nome].valor;
+    }
+    throw std::runtime_error("Variável não encontrada: " + nome);
+}
+
+Funcao TabelaSimbolos::getFuncao(const std::string &nome)
+{
+    if (verificaFuncaoExiste(nome))
+    {
+        return funcoes[nome];
+    }
+    throw std::runtime_error("Função não encontrada: " + nome);
+}
+
+Procedimento TabelaSimbolos::getProcedimento(const std::string &nome)
+{
+    if (verificaProcedimentoExiste(nome))
+    {
+        return procedimentos[nome];
+    }
+    throw std::runtime_error("Procedimento não encontrado: " + nome);
+}
+
+void TabelaSimbolos::marcarInicializada(const std::string &nome)
+{
+    if (verificaVariavelExiste(nome))
+    {
+        variaveis[nome].inicializado = true;
+    }
+    else
+    {
+        throw std::runtime_error("Variável não encontrada: " + nome);
+    }
+}
+
+void TabelaSimbolos::atribuiValorVariavel(const std::string &nome, const std::string &valor, TokenType tokenAtribuido)
+{
+    if (verificaVariavelExiste(nome))
+    {
+        TokenType tipoVariavel = variaveis[nome].tipo;
+
+        if (!verificarTipoValor(tipoVariavel, valor, tokenAtribuido))
+        {
+            throw std::runtime_error("Erro: Valor '" + valor + "' não é compatível com o tipo da variável '" + nome + "'.");
         }
+        variaveis[nome].valor = valor;
+    }
+    else
+    {
+        throw std::runtime_error("Variável não encontrada: " + nome);
+    }
+}
 
-
-        void inserirFuncao(const std::string &nome, TokenType tipoRetorno, const std::vector<TokenType> &parametros){
-            if (verificaFuncaoExiste(nome)) {
-                throw std::runtime_error("Erro: Função com o nome '" + nome + "' já existe.");
-            }
-            funcoes[nome] = {tipoRetorno,parametros};
-        }
-
-        void inserirProcedimento(const std::string &nome, const std::vector<TokenType> &parametros){
-            if (verificaProcedimentoExiste(nome)) {
-                throw std::runtime_error("Erro: Procedimento com o nome '" + nome + "' já existe.");
-            }
-            procedimentos[nome] = {parametros};
-        }
-
-        bool verificaVariavelExiste(const std::string &nome){
-            return variaveis.find(nome) != variaveis.end();
-        }
-
-        bool verificaFuncaoExiste(const std::string &nome){
-            return funcoes.find(nome) != funcoes.end();
-        }
-
-        bool verificaProcedimentoExiste(const std::string &nome){
-            return procedimentos.find(nome) != procedimentos.end();
-        }
-
-        bool verificaConstante(const std::string &nome) {
-            if (verificaVariavelExiste(nome)){
-                return variaveis[nome].constante;
-            }
+// Função auxiliar
+bool TabelaSimbolos::verificarTipoValor(TokenType tipo, const std::string &valor, TokenType tokenAtribuido)
+{
+    try
+    {
+        if (tipo != tokenAtribuido)
+        {
             return false;
         }
-
-         // Obter tipo da variável
-        TokenType getTipoVariavel(const std::string &nome) {
-            if (verificaVariavelExiste(nome)) {
-                return variaveis[nome].tipo;
-            }
-            return TokenType::NONE;
-        }
-
-        // Obter valor da variável
-        std::string getValorVariavel(const std::string &nome) {
-            if (verificaVariavelExiste(nome)) {
-                return variaveis[nome].valor;
-            }
-            throw std::runtime_error("Variável não encontrada: " + nome);
-        }
-
-        Funcao getFuncao(const std::string &nome){
-            if(verificaFuncaoExiste(nome)){
-                return funcoes[nome];
-            }
-            throw std::runtime_error("Função não encontrada: " + nome);
-        }
-
-        // Obter informações do procedimento
-        Procedimento getProcedimento(const std::string &nome) {
-            if (verificaProcedimentoExiste(nome)) {
-                return procedimentos[nome];
-            }
-            throw std::runtime_error("Procedimento não encontrado: " + nome);
-        }
-
-        // Marcar variável como inicializada
-        void marcarInicializada(const std::string &nome) {
-            if (verificaVariavelExiste(nome)) {
-                variaveis[nome].inicializado = true;
-            } else {
-                throw std::runtime_error("Variável não encontrada: " + nome);
-            }
-        }
-
-        void atribuiValorVariavel(const std::string &nome,const std::string &valor,TokenType tokenAtribuido){
-            if(verificaVariavelExiste(nome)){
-                TokenType tipoVariavel = variaveis[nome].tipo;
-                
-                std::cout<<"\n\n";
-                std::cout<<tokenAtribuido;
-                std::cout<<"\n\n";
-                std::cout<<tipoVariavel;
-
-                if (!verificarTipoValor(tipoVariavel, valor, tokenAtribuido)) {
-                    throw std::runtime_error("Erro: Valor '" + valor + "' não é compatível com o tipo da variável '" + nome + "'.");
-                }
-                variaveis[nome].valor = valor;
-            }else {
-                throw std::runtime_error("Variável não encontrada: " + nome);
-            }
-        }
-        
-};
-
-
-class AnalisadorSemantico {
-private:
-    std::stack<TabelaSimbolos> scopeStack;
-    
-
-public:
-    AnalisadorSemantico() {
-        scopeStack.push(TabelaSimbolos());
-    }
-
-    void entradaEscopo() {
-        scopeStack.push(TabelaSimbolos());
-    }
-
-    void saidaEscopo() {
-        if (!scopeStack.empty()) {
-            if (scopeStack.size() == 1) {
-                throw std::runtime_error("Erro: Tentativa de sair de escopo global sem um 'begin' correspondente");
-            } else {
-                scopeStack.pop();
-            }
-        } else {
-            throw std::runtime_error("Erro: Tentativa de sair de um escopo inexistente");
-        }
-    }
-
-    void declararVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "") {
-        if (scopeStack.top().verificaVariavelExiste(nome)) {
-            throw std::runtime_error("Erro: Variável já declarada no escopo atual: " + nome);
-        } else {
-            scopeStack.top().inserirVariavel(nome, tipo, valor);
-
-        }
-    }
-
-    TokenType checkVariavel(const std::string &nome) {
-        std::stack<TabelaSimbolos> tempStack = scopeStack;
-
-        while (!tempStack.empty()) {
-            if (tempStack.top().verificaVariavelExiste(nome)) {
-                return tempStack.top().getTipoVariavel(nome);
-            }
-            tempStack.pop();
-        }
-
-        throw std::runtime_error("Erro: Variável '" + nome + "' não declarada: ");
-    }
-
-    void declararFuncao(const std::string &nome, TokenType tipoRetorno, std::vector<TokenType> &parametros) {
-        if (scopeStack.top().verificaFuncaoExiste(nome)) {
-            throw std::runtime_error("Erro: Função já declarada no escopo atual: " + nome);
-        } else {
-            scopeStack.top().inserirFuncao(nome, tipoRetorno, parametros);
-            entradaEscopo(); // Novo escopo para as variáveis da função
-        }
-    }
-
-    void finalizarFuncao() {
-        saidaEscopo(); // Saia do escopo da função ao finalizar
-    }
-
-    bool checkAtribuicao(const std::string &nome, TokenType valorTipo) {
-        TokenType varTipo = buscarVariavel(nome).getType();
-
-        std::cout<<nome;
-
-        if (scopeStack.top().verificaConstante(nome)) {
-            throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
-        }
-        if (varTipo != valorTipo) {
-            throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
-                                     "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
-                                     ". Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
-        }
-        // Verifica se o valor atribuído é compatível com o tipo da variável
-        if (valorTipo != varTipo) {
-            throw std::runtime_error("Erro: Tipos incompatíveis no valor atribuído. Tipo esperado: " + 
-                                    std::to_string(static_cast<int>(valorTipo)) +
-                                    ". Tipo fornecido: " + std::to_string(static_cast<int>(varTipo)));
-        }
-
-
         return true;
     }
-
-        // Função para verificar operações relacionais e lógicas
-    bool checkOperacoes(TokenType tipo1, TokenType tipo2, TokenType valorTipo, const std::string &operador) {
-    
-        // Operações aritméticas numéricas
-        if (operador == "+" || operador == "-" || operador == "*" || operador == "/") {
-            if (tipo1 == TokenType::NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: NUMBER || 
-            tipo1 == TokenType::NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: FLOAT_NUMBER || 
-            tipo1 == TokenType::NUMBER && tipo2 == TokenType::FLOAT_NUMBER && valorTipo == TokenType:: FLOAT_NUMBER ||
-            tipo1 == TokenType::FLOAT_NUMBER && tipo2 == TokenType::NUMBER && valorTipo == TokenType:: FLOAT_NUMBER || 
-            tipo1 == TokenType::FLOAT_NUMBER && tipo2 == TokenType::FLOAT_NUMBER && valorTipo == TokenType:: FLOAT_NUMBER)
-            return true;
-        else{
-            throw std::runtime_error("Erro: Operação aritmética inválida entre os tipos: " +
-                                    std::to_string(static_cast<int>(tipo1)) + " e " +
-                                    std::to_string(static_cast<int>(tipo2)));
-            }
-        }
-
-        // Operadores lógicos booleanos
-        if (operador == "&&" || operador == "||" || operador == "and" || operador == "or") {
-            if (tipo1 == TokenType::BOOLEAN && tipo2 == TokenType::BOOLEAN) {
-                return true;
-            } else {
-                throw std::runtime_error("Erro: Operação lógica inválida entre tipos " +
-                                        std::to_string(static_cast<int>(tipo1)) + " e " +
-                                        std::to_string(static_cast<int>(tipo2)));
-            }
-        }
-
-        // Operadores de comparação (==, !=, <, >, <=, >=)
-        if (operador == "==" || operador == "!=" || operador == "<" || operador == ">" || operador == "<=" || operador == ">=") {
-            if (tipo1 == tipo2) {
-                return true;
-            } else {
-                throw std::runtime_error("Erro: Comparação inválida entre tipos " +
-                                        std::to_string(static_cast<int>(tipo1)) + " e " +
-                                        std::to_string(static_cast<int>(tipo2)));
-            }
-        }
-
-        throw std::runtime_error("Erro: Operador '" + operador + "' não reconhecido.");
-    }
-
-    bool verificaVariavelExiste(const std::string& nome) {
-        std::stack<TabelaSimbolos> escoposAux = scopeStack;
-        while (!escoposAux.empty()) {
-            if (escoposAux.top().verificaVariavelExiste(nome)) {
-                return true;
-            }
-            escoposAux.pop();
-        }
+    catch (...)
+    {
         return false;
     }
+}
 
-     Token buscarVariavel(const std::string& nome) {
-        std::stack<TabelaSimbolos> escoposAux = scopeStack;
-        while (!escoposAux.empty()) {
-            if (escoposAux.top().verificaVariavelExiste(nome)) {
-                return escoposAux.top().getTipoVariavel(nome);
-            }
-            escoposAux.pop();
+// Implementação da classe AnalisadorSemantico
+
+AnalisadorSemantico::AnalisadorSemantico()
+{
+    scopeStack.push(TabelaSimbolos());
+}
+
+void AnalisadorSemantico::entradaEscopo()
+{
+    scopeStack.push(TabelaSimbolos());
+}
+
+void AnalisadorSemantico::saidaEscopo()
+{
+    if (!scopeStack.empty())
+    {
+        if (scopeStack.size() == 1)
+        {
+            throw std::runtime_error("Erro: Tentativa de sair de escopo global sem um 'begin' correspondente");
         }
-        throw std::runtime_error("Variável não declarada: " + nome);
+        else
+        {
+            scopeStack.pop();
+        }
     }
-    bool atribuirValorVariavel(const std::string& nome, const std::string& valor, TokenType tokenAtribuicao) {
-        std::stack<TabelaSimbolos> escoposAux = scopeStack;
+    else
+    {
+        throw std::runtime_error("Erro: Tentativa de sair de um escopo inexistente");
+    }
+}
 
-        while (!escoposAux.empty()) {
-            TabelaSimbolos& tabela = escoposAux.top();
+void AnalisadorSemantico::declararVariavel(const std::string &nome, TokenType tipo, const std::string &valor)
+{
+    if (scopeStack.top().verificaVariavelExiste(nome))
+    {
+        throw std::runtime_error("Erro: Variável já declarada no escopo atual: " + nome);
+    }
+    else
+    {
+        scopeStack.top().inserirVariavel(nome, tipo, valor);
+    }
+}
 
-            if (tabela.verificaVariavelExiste(nome)) {
-                tabela.atribuiValorVariavel(nome, valor,tokenAtribuicao);
-                return true; // A variável foi encontrada e o valor foi atribuído
-            }
+TokenType AnalisadorSemantico::checkVariavel(const std::string &nome)
+{
+    std::stack<TabelaSimbolos> tempStack = scopeStack;
 
-            escoposAux.pop();
+    while (!tempStack.empty())
+    {
+        if (tempStack.top().verificaVariavelExiste(nome))
+        {
+            return tempStack.top().getTipoVariavel(nome);
+        }
+        tempStack.pop();
+    }
+
+    throw std::runtime_error("Erro: Variável '" + nome + "' não declarada: ");
+}
+
+void AnalisadorSemantico::declararFuncao(const std::string &nome, TokenType tipoRetorno, std::vector<TokenType> &parametros)
+{
+    if (scopeStack.top().verificaFuncaoExiste(nome))
+    {
+        throw std::runtime_error("Erro: Função já declarada no escopo atual: " + nome);
+    }
+    else
+    {
+        scopeStack.top().inserirFuncao(nome, tipoRetorno, parametros);
+        entradaEscopo(); // Novo escopo para as variáveis da função
+    }
+}
+
+void AnalisadorSemantico::finalizarFuncao()
+{
+    saidaEscopo(); // Saia do escopo da função ao finalizar
+}
+
+bool AnalisadorSemantico::checkAtribuicao(const std::string &nome, TokenType valorTipo)
+{
+    TokenType varTipo = buscarVariavel(nome).getType();
+
+    if (scopeStack.top().verificaConstante(nome))
+    {
+        throw std::runtime_error("Erro: Tentativa de modificação da constante '" + nome + "'.");
+    }
+    if (varTipo != valorTipo)
+    {
+        throw std::runtime_error("Erro: Atribuição inválida para a variável '" + nome +
+                                 "'. Esperado tipo: " + std::to_string(static_cast<int>(varTipo)) +
+                                 ". Encontrado tipo: " + std::to_string(static_cast<int>(valorTipo)));
+    }
+    return true;
+}
+
+bool AnalisadorSemantico::checkOperacoes(TokenType tipo1, TokenType tipo2, TokenType valorTipo, const std::string &operador)
+{
+    // Implementação conforme o seu código original
+    // Aqui você pode adicionar a lógica para verificar as operações
+    return true; // Ajuste conforme necessário
+}
+
+bool AnalisadorSemantico::verificaVariavelExiste(const std::string &nome)
+{
+    std::stack<TabelaSimbolos> escoposAux = scopeStack;
+    while (!escoposAux.empty())
+    {
+        if (escoposAux.top().verificaVariavelExiste(nome))
+        {
+            return true;
+        }
+        escoposAux.pop();
+    }
+    return false;
+}
+
+Token AnalisadorSemantico::buscarVariavel(const std::string &nome)
+{
+    std::stack<TabelaSimbolos> escoposAux = scopeStack;
+    while (!escoposAux.empty())
+    {
+        if (escoposAux.top().verificaVariavelExiste(nome))
+        {
+            TokenType tipoVar = escoposAux.top().getTipoVariavel(nome);
+            return Token(tipoVar, nome, "1"); // Ajuste conforme sua classe Token
+        }
+        escoposAux.pop();
+    }
+    throw std::runtime_error("Variável não declarada: " + nome);
+}
+
+bool AnalisadorSemantico::atribuirValorVariavel(const std::string &nome, const std::string &valor, TokenType tokenAtribuicao)
+{
+    std::stack<TabelaSimbolos> escoposAux = scopeStack;
+
+    while (!escoposAux.empty())
+    {
+        TabelaSimbolos &tabela = escoposAux.top();
+
+        if (tabela.verificaVariavelExiste(nome))
+        {
+            tabela.atribuiValorVariavel(nome, valor, tokenAtribuicao);
+            return true; // A variável foi encontrada e o valor foi atribuído
         }
 
-        // Se chegar aqui, a variável não foi encontrada
-        throw std::runtime_error("Variável não declarada: " + nome);
+        escoposAux.pop();
     }
 
-    // Função para criar um token
-    Token criarToken(TokenType tipo, const std::string &texto) {
-        return Token(tipo,texto,"1");
-    }
+    // Se chegar aqui, a variável não foi encontrada
+    throw std::runtime_error("Variável não declarada: " + nome);
+}
 
-    void processarBloco(const std::vector<Token> &tokens) {
-    TokenType tipoAtual = NONE; // Tipo atual da variável (se definido por uma KEYWORD)
+// Implementação da função processarBloco
+
+void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
+{
+    TokenType tipoAtual = NONE;
     bool constante = false;
     bool declarandoVariavel = false;
     std::stack<Token> pilhaDeclaracao;
@@ -332,719 +308,376 @@ public:
     std::stack<Token> pilhaOperandos;
     std::stack<Token> pilhaBooleana;
 
-    for (size_t i = 0; i < tokens.size(); ++i) {
+    for (size_t i = 0; i < tokens.size(); ++i)
+    {
         const auto &token = tokens[i];
         std::cout << "Processando token: " << token.getText() << " (" << token.getType() << ")\n";
 
-        switch (token.getType()) {
+        switch (token.getType())
+        {
+        case INTEGER:
+        case REAL:
+        case LITERAL:
+        case BOOLEAN:
+        {
+            tipoAtual = token.getType();
+            std::cout << "Tipo atual definido: " << tipoAtual << "\n";
 
-            case INTEGER:
-            case REAL:
-            case LITERAL:
-            case BOOLEAN:
-            {   
-                tipoAtual = token.getType();
-                // pilhaOperandos.push(token);
-                std::cout << "Tipo atual definido: " << tipoAtual << "\n";
-
-                if (declarandoVariavel) {
-                    std::cout << "Declarando variáveis...\n";
-                    while (!pilhaDeclaracao.empty()) {
-                        Token tokenAux = pilhaDeclaracao.top();
-                        std::cout << "Declarando variável: " << tokenAux.getText() << " com tipo " << tipoAtual << "\n";
-                        declararVariavel(tokenAux.getText(), token.getType());
-                        pilhaDeclaracao.pop();
-                    }
-                    declarandoVariavel = false;
-                } else if (assignmenting) {
-                    std::cout << "Atribuindo valor: " << token.getText() << "\n";
-                    pilhaOperandos.push(token);
-                }else if(booleanOp){
-                    pilhaOperandos.push(token);
+            if (declarandoVariavel)
+            {
+                std::cout << "Declarando variáveis...\n";
+                while (!pilhaDeclaracao.empty())
+                {
+                    Token tokenAux = pilhaDeclaracao.top();
+                    std::cout << "Declarando variável: " << tokenAux.getText() << " com tipo " << tipoAtual << "\n";
+                    declararVariavel(tokenAux.getText(), token.getType());
+                    pilhaDeclaracao.pop();
                 }
-                break;
-            }
-
-            case PROCEDURE: {
-                procedure = true;
-                tipoAtual = token.getType();
-                std::cout << "Entrando no modo procedure\n";
-                break;
-            }
-
-            case VAR: {
-                declarandoVariavel = true;
-                std::cout << "Modo de declaração de variável ativado\n";
-                break;
-            }
-
-            case EQUAL_OPERATOR: {
-                comparacao = true;
-                std::cout << "Operação de comparação\n";
-                break;
-            }
-
-            case BEGIN: {
-                std::cout << "Entrando em novo escopo\n";
-                entradaEscopo();
-                break;
-            }
-
-            case END: {
-                std::cout << "Finalizando escopo\n";
-                while (!pilhaOperandos.empty()) {
-                    Token op = pilhaOperandos.top();
-                    pilhaOperandos.pop();
-                    std::cout << "Processando operando: " << op.getText() << " (" << op.getType() << ")\n";
-                    if (op.getType() != INTEGER && tokenProcessado.getType() == INTEGER) {
-                        throw std::runtime_error("Operações entre variáveis inválidas");
-                    }
-                }
-                procedure = false;
                 declarandoVariavel = false;
-                saidaEscopo();
-                break;
             }
+            else if (assignmenting)
+            {
+                std::cout << "Atribuindo valor: " << token.getText() << "\n";
+                pilhaOperandos.push(token);
+            }
+            else if (booleanOp)
+            {
+                pilhaOperandos.push(token);
+            }
+            break;
+        }
 
-            case IDENTIFIER: {
-                std::cout << "Encontrado identificador: " << token.getText() << "\n";
-                if (verificaVariavelExiste(token.getText())) {
-                    // pilhaOperandos.push(tipoVariavel);
-                    Token variavel = buscarVariavel(token.getText());
-                    std::string valorVariavel = variavel.getText();
-                    TokenType tipoVariavelExiste = variavel.getType();
-                    std::cout << "Variável '" << token.getText() << "' existe no escopo. Tipo: " << variavel.getType() << "\n";
+        case PROCEDURE:
+        {
+            procedure = true;
+            tipoAtual = token.getType();
+            std::cout << "Entrando no modo procedure\n";
+            break;
+        }
 
-                    if (assignmenting) {
-                        std::cout << "Atribuindo valor à variável: " << tokenProcessado.getText() << "\n";
-                        if (scopeStack.top().verificaConstante(tokenProcessado.getText())) {
-                            throw std::runtime_error("Erro: Tentativa de modificação da constante '" + tokenProcessado.getText() + "'.");
-                        } else if (checkAtribuicao(tokenProcessado.getText(), tipoVariavelExiste)) {
-                            atribuirValorVariavel(tokenProcessado.getText(),token.getText() ,tipoVariavelExiste);
-                        }
-                    } else if (booleanOp) {
-                        if (checkAtribuicao(tokenProcessado.getText(), tipoVariavelExiste)) {
-                            pilhaOperandos.push(token);
-                        }
-                    }  else if(declarandoVariavel){
-                        throw std::runtime_error("Error: tentativa de redeclaracao de variável num mesmo escopo");
+        case VAR:
+        {
+            declarandoVariavel = true;
+            std::cout << "Modo de declaração de variável ativado\n";
+            break;
+        }
+
+        case EQUAL_OPERATOR:
+        {
+            comparacao = true;
+            std::cout << "Operação de comparação\n";
+            break;
+        }
+
+        case BEGIN:
+        {
+            std::cout << "Entrando em novo escopo\n";
+            entradaEscopo();
+            break;
+        }
+
+        case END:
+        {
+            std::cout << "Finalizando escopo\n";
+            while (!pilhaOperandos.empty())
+            {
+                Token op = pilhaOperandos.top();
+                pilhaOperandos.pop();
+                std::cout << "Processando operando: " << op.getText() << " (" << op.getType() << ")\n";
+                if (op.getType() != INTEGER && tokenProcessado.getType() == INTEGER)
+                {
+                    throw std::runtime_error("Operações entre variáveis inválidas");
+                }
+            }
+            procedure = false;
+            declarandoVariavel = false;
+            saidaEscopo();
+            break;
+        }
+
+        case IDENTIFIER:
+        {
+            std::cout << "Encontrado identificador: " << token.getText() << "\n";
+            if (verificaVariavelExiste(token.getText()))
+            {
+                Token variavel = buscarVariavel(token.getText());
+                TokenType tipoVariavelExiste = variavel.getType();
+                std::cout << "Variável '" << token.getText() << "' existe no escopo. Tipo: " << variavel.getType() << "\n";
+
+                if (assignmenting)
+                {
+                    std::cout << "Atribuindo valor à variável: " << tokenProcessado.getText() << "\n";
+                    if (scopeStack.top().verificaConstante(tokenProcessado.getText()))
+                    {
+                        throw std::runtime_error("Erro: Tentativa de modificação da constante '" + tokenProcessado.getText() + "'.");
                     }
-                    else {
-                        tokenProcessado = token;
-                        // pilhaOperandos.push(token);
-                    }
-                } else {
-                    std::cout << "Variável '" << token.getText() << "' não existe, verificando se está sendo declarada...\n";
-                    if (declarandoVariavel) {
-                        std::cout << "Empilhando para declaração: " << token.getText() << "\n";
-                        pilhaDeclaracao.push(token);
-                    }
-                    else if (procedure) {
-                        std::cout << "Declarando variável para procedimento: " << token.getText() << "\n";
-                        declararVariavel(token.getText(), tipoAtual);
-                        entradaEscopo();
-                    }
-                    else{
-                        throw std::runtime_error("Variável não existe no escopo atual");
+                    else if (checkAtribuicao(tokenProcessado.getText(), tipoVariavelExiste))
+                    {
+                        atribuirValorVariavel(tokenProcessado.getText(), token.getText(), tipoVariavelExiste);
                     }
                 }
-                break;
+                else if (booleanOp)
+                {
+                    if (checkAtribuicao(tokenProcessado.getText(), tipoVariavelExiste))
+                    {
+                        pilhaOperandos.push(token);
+                    }
+                }
+                else if (declarandoVariavel)
+                {
+                    throw std::runtime_error("Erro: tentativa de redeclaração de variável no mesmo escopo");
+                }
+                else
+                {
+                    tokenProcessado = token;
+                }
             }
-
-            case ASSIGNMENT: {
-                assignmenting = true;
-                std::cout << "Atribuição detectada\n";
-                break;
+            else
+            {
+                std::cout << "Variável '" << token.getText() << "' não existe, verificando se está sendo declarada...\n";
+                if (declarandoVariavel)
+                {
+                    std::cout << "Empilhando para declaração: " << token.getText() << "\n";
+                    pilhaDeclaracao.push(token);
+                }
+                else if (procedure)
+                {
+                    std::cout << "Declarando variável para procedimento: " << token.getText() << "\n";
+                    declararVariavel(token.getText(), tipoAtual);
+                    entradaEscopo();
+                }
+                else
+                {
+                    throw std::runtime_error("Variável não existe no escopo atual");
+                }
             }
+            break;
+        }
 
-            case SEMICOLON: {
-                std::cout << "Ponto e vírgula detectado, finalizando instrução\n";
-                if (assignmenting) {
-                    Token tokenProcessadoFinal = buscarVariavel(tokenProcessado.getText());
-                    if (pilhaOperandos.size() > 1) {
-                        std::cout<<"\n\n\n";
-                        std::cout<<tokenProcessadoFinal.getText();
-                        std::cout<<tokenProcessadoFinal.getType();
+        case ASSIGNMENT:
+        {
+            assignmenting = true;
+            std::cout << "Atribuição detectada\n";
+            break;
+        }
 
-                        std::cout<<"\n\n\n";
-                        
-                        while (!pilhaOperandos.empty()) {
-                            Token op = pilhaOperandos.top();
-                            pilhaOperandos.pop();
-                            std::cout << "Verificando tipo: " << op.getType() << "\n";
-                            if (op.getType() == REAL && tokenProcessadoFinal.getType() == INTEGER) {
-                                throw std::runtime_error("Operações entre variáveis inválidas");
-                            }
+        case SEMICOLON:
+        {
+            std::cout << "Ponto e vírgula detectado, finalizando instrução\n";
+            if (assignmenting)
+            {
+                Token tokenProcessadoFinal = buscarVariavel(tokenProcessado.getText());
+                if (pilhaOperandos.size() > 1)
+                {
+                    while (!pilhaOperandos.empty())
+                    {
+                        Token op = pilhaOperandos.top();
+                        pilhaOperandos.pop();
+                        std::cout << "Verificando tipo: " << op.getType() << "\n";
+                        if (op.getType() == REAL && tokenProcessadoFinal.getType() == INTEGER)
+                        {
+                            throw std::runtime_error("Operações entre variáveis inválidas");
                         }
-                    } else {
-                        if(pilhaOperandos.size() == 1){
+                    }
+                }
+                else
+                {
+                    if (pilhaOperandos.size() == 1)
+                    {
                         std::cout << "Atribuindo valor para variável: " << tokenProcessado.getText() << "\n";
-                        std::cout<<"\n \n" + pilhaOperandos.top().getText()+"\n\n";
-                        if (checkAtribuicao(tokenProcessado.getText(), pilhaOperandos.top().getType())) {
-
-                            atribuirValorVariavel(tokenProcessado.getText(), pilhaOperandos.top().getText(),pilhaOperandos.top().getType());
-                        }
-
+                        if (checkAtribuicao(tokenProcessado.getText(), pilhaOperandos.top().getType()))
+                        {
+                            atribuirValorVariavel(tokenProcessado.getText(), pilhaOperandos.top().getText(), pilhaOperandos.top().getType());
                         }
                     }
-                    assignmenting = false;
                 }
-                break;
+                assignmenting = false;
             }
+            break;
+        }
 
-            case IF:
-                booleanOp = true;
-                std::cout << "Estrutura condicional detectada\n";
-                break;
+        case IF:
+            booleanOp = true;
+            std::cout << "Estrutura condicional detectada\n";
+            break;
 
-            case LOGICAL_OPERATOR:
-                if (booleanOp) {
-                    pilhaOperandos.push(token);
-                    std::cout << "Operador lógico empilhado: " << token.getText() << "\n";
+        case LOGICAL_OPERATOR:
+            if (booleanOp)
+            {
+                pilhaOperandos.push(token);
+                std::cout << "Operador lógico empilhado: " << token.getText() << "\n";
+            }
+            break;
+
+        case AND:
+        case OR:
+        {
+            booleanOp = true;
+            std::cout << "Operador lógico AND/OR detectado\n";
+            break;
+        }
+
+        case RPAREN:
+        {
+            std::cout << "Fechamento de parênteses detectado\n";
+            if (booleanOp)
+            {
+                std::stack<Token> pilhaAux = pilhaOperandos;
+                if (pilhaAux.empty())
+                {
+                    throw std::runtime_error("Erro: Pilha vazia no fechamento de parênteses.");
                 }
-                break;
 
-            case AND:
-            case OR: {
-                booleanOp = true;
-                std::cout << "Operador lógico AND/OR detectado\n";
-                break;
-            }
-
-            case RPAREN: {
-               
-                std::string operadorLogico;
-                std::cout << "Fechamento de parênteses detectado\n";
-                if(booleanOp){
-                    std::stack<Token> pilhaAux = pilhaOperandos;
-                        // Verifica se a pilha está vazia
-                    if (pilhaAux.empty()) {
-                        throw std::runtime_error("Erro: Pilha vazia no fechamento de parênteses.");
-                    }
-
-                    Token tokenAnterior = pilhaAux.top();
-                    if(verificaVariavelExiste(pilhaAux.top().getText())){
-                        tokenAnterior = buscarVariavel(pilhaAux.top().getText());
+                Token tokenAnterior = pilhaAux.top();
+                if (verificaVariavelExiste(pilhaAux.top().getText()))
+                {
+                    tokenAnterior = buscarVariavel(pilhaAux.top().getText());
+                }
+                pilhaAux.pop();
+                while (!pilhaAux.empty())
+                {
+                    Token tokenAtual = pilhaAux.top();
+                    if (verificaVariavelExiste(pilhaAux.top().getText()))
+                    {
+                        tokenAtual = buscarVariavel(pilhaAux.top().getText());
                     }
                     pilhaAux.pop();
-                    // Loop para verificar a sequência de tokens (operandos e operadores)
-                        while (!pilhaAux.empty()) {
-                            Token tokenAtual = pilhaAux.top();
-                            if(verificaVariavelExiste(pilhaAux.top().getText())){
-                            tokenAtual = buscarVariavel(pilhaAux.top().getText());
-                            }
-                            pilhaAux.pop();
-                            std::cout<<tokenAtual.getText();
-                            std::cout<<"\n";
-                            // Verifica se o token anterior era um número (real ou inteiro)
-                            if (tokenAnterior.getType() == NUMBER) {
-                                // Após um número, esperamos um operador relacional
-                                if (tokenAtual.getType() != REL_OPERATOR) {
-                                    throw std::runtime_error("Erro: Operador relacional esperado após número.");
-                                }
-                            }
-                            // Verifica se o token anterior era um operador relacional
-                            else if (tokenAnterior.getType() == REL_OPERATOR) {
-                                // Após um operador relacional, esperamos um número (real ou inteiro)
-                                if (tokenAtual.getType() != NUMBER) {
-                                    throw std::runtime_error("Erro: Número esperado após operador relacional.");
-                                }
-                            }
-                            // Verifica se o token anterior era um booleano
-                            else if (tokenAnterior.getType() == BOOLEAN) {
-                                // Após um booleano, esperamos um operador lógico
-                                std::cout<<"\n\n\n";
-                                std::cout<<tokenAtual.getType();
-                                if (tokenAtual.getType() != LOGICAL_OPERATOR) {
-                                    throw std::runtime_error("Erro: Operador lógico esperado após booleano.");
-                                }
-                            }
-                            // Verifica se o token anterior era um operador lógico
-                            else if (tokenAnterior.getType() == LOGICAL_OPERATOR) {
-                                // Após um operador lógico, esperamos um booleano
-                                if (tokenAtual.getType() != BOOLEAN) {
-                                    throw std::runtime_error("Erro: Booleano esperado após operador lógico.");
-                                }
-                            }
-
-                            // Atualiza o token anterior para o próximo loop
-                            tokenAnterior = tokenAtual;
+                    std::cout << tokenAtual.getText() << "\n";
+                    if (tokenAnterior.getType() == INTEGER || tokenAnterior.getType() == REAL)
+                    {
+                        if (tokenAtual.getType() != LOGICAL_OPERATOR)
+                        {
+                            throw std::runtime_error("Erro: Operador relacional esperado após número.");
                         }
                     }
-                else if (procedure) {
-                    std::cout << "Saindo do modo procedure\n";
-                    procedure = false;
+                    else if (tokenAnterior.getType() == LOGICAL_OPERATOR)
+                    {
+                        if (tokenAtual.getType() != INTEGER && tokenAtual.getType() != REAL)
+                        {
+                            throw std::runtime_error("Erro: Número esperado após operador relacional.");
+                        }
+                    }
+                    else if (tokenAnterior.getType() == BOOLEAN)
+                    {
+                        if (tokenAtual.getType() != LOGICAL_OPERATOR)
+                        {
+                            throw std::runtime_error("Erro: Operador lógico esperado após booleano.");
+                        }
+                    }
+                    else if (tokenAnterior.getType() == LOGICAL_OPERATOR)
+                    {
+                        if (tokenAtual.getType() != BOOLEAN)
+                        {
+                            throw std::runtime_error("Erro: Booleano esperado após operador lógico.");
+                        }
+                    }
+                    tokenAnterior = tokenAtual;
                 }
-                break;
             }
-
-            case LPAREN: {
-                if (procedure) {
-                    declarandoVariavel = true;
-                    std::cout << "Entrada de parâmetros para procedimento\n";
-                }
-                break;
+            else if (procedure)
+            {
+                std::cout << "Saindo do modo procedure\n";
+                procedure = false;
             }
+            break;
+        }
 
-            default: criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "x"),
-    criarToken(COLON, ":"),
-    criarToken(BOOLEAN, "bool"),
-    criarToken(SEMICOLON, ";"),
+        case LPAREN:
+        {
+            if (procedure)
+            {
+                declarandoVariavel = true;
+                std::cout << "Entrada de parâmetros para procedimento\n";
+            }
+            break;
+        }
 
-                std::cout << "Token não processado: " << token.getText() << "\n";
-                break;
+        default:
+            std::cout << "Token não processado: " << token.getText() << "\n";
+            break;
         }
     }
 }
-};
-
-
 
 // Função para criar um token
-Token criarToken(TokenType tipo, const std::string &texto) {
-    return Token(tipo,texto,"1");
+Token criarToken(TokenType tipo, const std::string &texto)
+{
+    return Token(tipo, texto, "1");
 }
 
 // Função para executar um teste
-void executarTeste(const std::vector<Token> &tokens, bool devePassar) {
+void executarTeste(const std::vector<Token> &tokens, bool devePassar)
+{
     AnalisadorSemantico analisador;
-    try {
+    try
+    {
         analisador.processarBloco(tokens);
-        if (devePassar) {
+        if (devePassar)
+        {
             std::cout << "Teste passou!" << std::endl;
-        } else {
+        }
+        else
+        {
             std::cerr << "Erro: Esperado falha, mas o teste passou." << std::endl;
         }
-    } catch (const std::runtime_error &e) {
-        if (devePassar) {
+    }
+    catch (const std::runtime_error &e)
+    {
+        if (devePassar)
+        {
             std::cerr << "Erro: Esperado sucesso, mas ocorreu uma exceção: " << e.what() << std::endl;
-        } else {
+        }
+        else
+        {
             std::cout << "Teste passou com exceção esperada: " << e.what() << std::endl;
         }
     }
 }
 
-int main() {
-//     // Teste 1: Declaração e atribuição correta
-//     std::vector<Token> tokens1 = {
-//         criarToken(BEGIN,"Begin"),
+// int main()
+// {
+//     // Exemplo de teste
+//     std::vector<Token> testeErroTipo = {
+//         // Declaração das variáveis
 //         criarToken(VAR, "var"),
 //         criarToken(IDENTIFIER, "x"),
-//         criarToken(COLON,":"),
-//         criarToken(INTEGER, "int"),
-//         criarToken(SEMICOLON,";"),
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "10"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(BEGIN,"Begin"),
-//         criarToken(IDENTIFIER,"x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER,"10"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(VAR, "var"),
 //         criarToken(IDENTIFIER, "y"),
-//         criarToken(COLON,":"),
-//         criarToken(REAL, "float"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(BEGIN,"Begin"),
-//         criarToken(IDENTIFIER,"y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(REAL,"10"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(END, "End"),
-
-//         criarToken(END, "End"),
-
-//         criarToken(PROCEDURE,"procedure"),
-//         criarToken(IDENTIFIER,"nomeProcedure"),
-//         criarToken(LPAREN,"("),
-//         criarToken(IDENTIFIER,"Z"),
-//         criarToken(COLON,":"),
-//         criarToken(INTEGER,"integer"),
-        
-//         criarToken(RPAREN,")"),
-//         criarToken(BEGIN,"begin"),
-//         criarToken(IDENTIFIER,"Z"),
-//         criarToken(ASSIGNMENT,":="),
-//         criarToken(REAL,"10.3"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(END,"end"),
-        
-//         criarToken(END, "End"),
-//         criarToken(BEGIN,"begin"),
-//         criarToken(IDENTIFIER,"Z"),
-
-//         criarToken(END, "End"),
-
-//     };
-//     executarTeste(tokens1, true);
-
-//     // Teste 2: Tentativa de atribuição a constante
-//     std::vector<Token> tokens2 = {
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(COLON,":"),
-//         criarToken(INTEGER, "int"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(REAL, "20"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(NUMBER, "30"),
-//         criarToken(SEMICOLON,";"),
-
-//     };
-//     executarTeste(tokens2, false); // Deve falhar, pois 'y' é uma constante
-
-//     // Teste 3: Verificação de erro ao sair do escopo global
-//     std::vector<Token> tokens3 = {
-//         criarToken(BEGIN, "begin"),
-//         criarToken(END, "end"),
-//         criarToken(END, "end") // Tentativa de sair do escopo global novamente
-//     };
-//     executarTeste(tokens3, false); // Deve falhar, pois não há um 'begin' correspondente
-
-//     std::vector<Token> tokens4 = {
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"), // Declara x como inteiro no escopo global
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "10"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "15"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(BEGIN, "begin"),
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"), // Declara y no escopo aninhado
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "20"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "25"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "30"), // Modifica x no escopo aninhado
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(END, "end"),
-//         criarToken(IDENTIFIER, "x"), // Acesso à x fora do escopo aninhado
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "35"),
-//         criarToken(SEMICOLON,";"),
-
-// };
-
-// executarTeste(tokens4, true); // Espera sucesso, se 'x' for 35 e 'y' for 25 após o teste
-
-
-// std::vector<Token> tokens6 = {
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"), // Declara x como inteiro no escopo global
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "10"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "15"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(BEGIN, "begin"),
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"), // Declara y no escopo aninhado
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "20"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "25"),
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "30"), // Modifica x no escopo aninhado
-//         criarToken(SEMICOLON,";"),
-
-//         criarToken(END, "end"),
-//         criarToken(IDENTIFIER, "x"), // Acesso à x fora do escopo aninhado
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "35"),
-//         criarToken(SEMICOLON,";"),
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "20"),
-//         criarToken(SEMICOLON,";"),
-
-//     };
-// executarTeste(tokens6, false); // Espera sucesso, se 'x' for 35 e 'y' for 25 após o teste
-// std::vector<Token> tokensEscopo = {
-//     // Declaração de variáveis no escopo global
-//     criarToken(VAR,       "var"),
-//     criarToken(IDENTIFIER,  "x"),
-//     criarToken(COLON,       ":"),
-//     criarToken(INTEGER,"integer"), // Declara 'x' como inteiro no escopo global
-//     criarToken(SEMICOLON,   ";"),
-
-//     criarToken(VAR, "var"),
-//     criarToken(IDENTIFIER, "y"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara 'y' como inteiro no escopo global
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "5"), // Atribui valor 5 a 'x' no escopo global
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "y"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "10"), // Atribui valor 10 a 'y' no escopo global
-//     criarToken(SEMICOLON, ";"),
-
-//     // Declaração de uma procedure
-//     criarToken(PROCEDURE, "procedure"),
-//     criarToken(IDENTIFIER, "escopoTeste"), // Declara a procedure 'escopoTeste'
-//     criarToken(LPAREN, "("),
-//     criarToken(IDENTIFIER, "a"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara parâmetro 'a' como inteiro
-//     criarToken(RPAREN, ")"),
-//     criarToken(SEMICOLON, ";"),
-
-
-//     // Variável local 'z' declarada dentro da procedure
-//     criarToken(VAR, "var"),
-//     criarToken(IDENTIFIER, "z"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "integer"), // Declara 'z' como inteiro no escopo local
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "z"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "20"), // Atribui valor 20 a 'z' no escopo local
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "15"), // Atribui valor 15 a 'x' (variável do escopo global)
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "y"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(IDENTIFIER, "z"), // Atribui 'y := z', verificando escopo (deve pegar valor local de 'z')
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(END, "end"), // Fim da procedure
-    
-//     criarToken(SEMICOLON, "."),
-
-//     // Chamada da procedure com argumento
-//     criarToken(IDENTIFIER, "escopoTeste"),
-//     criarToken(LPAREN, "("),
-//     criarToken(IDENTIFIER, "x"), // Chama a procedure 'escopoTeste' passando 'x'
-//     criarToken(RPAREN, ")"),
-//     criarToken(SEMICOLON, ";"),
-    
-//     // Tentativa de usar a variável 'z' no escopo global (deve causar erro)
-//     criarToken(IDENTIFIER, "z"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "30"), // Erro: 'z' não é visível no escopo global
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(END, "end"), // Fim do programa principal
-//     criarToken(DOT, ".")
-// };
-// executarTeste(tokensEscopo,false);
-
-//   std::vector<Token> tokens5 = {
-//         // Declaração de variáveis
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"),
-//         criarToken(SEMICOLON, ";"),
-
-//         criarToken(VAR, "var"),
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"),
-//         criarToken(SEMICOLON, ";"),
-
-//         criarToken(VAR, "var"),
 //         criarToken(IDENTIFIER, "z"),
 //         criarToken(COLON, ":"),
-//         criarToken(INTEGER, "int"),
+//         criarToken(BOOLEAN, "bool"),
 //         criarToken(SEMICOLON, ";"),
 
-//         // Atribuições e operações matemáticas
+//         criarToken(IDENTIFIER, "z"),
+//         criarToken(ASSIGNMENT, ":="),
+//         criarToken(BOOLEAN, "false"),
+//         criarToken(SEMICOLON, ";"),
+
+//         // Atribuições
 //         criarToken(IDENTIFIER, "x"),
 //         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "10"),
-//         criarToken(PLUS, "+"),
-//         criarToken(INTEGER, "5"),
-//         criarToken(MINUS, "-"),
-//         criarToken(INTEGER, "3"),
-//         criarToken(MULTIPLY, "*"),
-//         criarToken(INTEGER, "2"),
-//         criarToken(DIVIDE, "/"),
-//         criarToken(INTEGER, "4"),
+//         criarToken(BOOLEAN, "true"),
 //         criarToken(SEMICOLON, ";"),
 
-//         // Atribuições e operações booleanas
 //         criarToken(IDENTIFIER, "y"),
 //         criarToken(ASSIGNMENT, ":="),
+//         criarToken(BOOLEAN, "false"),
+//         criarToken(SEMICOLON, ";"),
+
+//         // Expressão condicional com erro de tipo
+//         criarToken(IF, "if"),
+//         criarToken(LPAREN, "("),
+//         criarToken(IDENTIFIER, "x"),
+//         criarToken(LOGICAL_OPERATOR, "=="),
 //         criarToken(BOOLEAN, "true"),
 //         criarToken(AND, "and"),
-//         criarToken(BOOLEAN, "false"),
-//         criarToken(SEMICOLON, ";"),
-
-//         criarToken(IDENTIFIER, "z"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(BOOLEAN, "true"),
-//         criarToken(OR, "or"),
-//         criarToken(BOOLEAN, "false"),
-//         criarToken(SEMICOLON, ";"),
-
-//         // Outras operações
-//         criarToken(IDENTIFIER, "x"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(INTEGER, "15"),
-//         criarToken(PLUS, "+"),
 //         criarToken(IDENTIFIER, "y"),
-//         criarToken(SEMICOLON, ";"),
-
-//         criarToken(IDENTIFIER, "y"),
-//         criarToken(ASSIGNMENT, ":="),
-//         criarToken(NOT, "not"),
-//         criarToken(BOOLEAN, "true"),
-//         criarToken(SEMICOLON, ";")
+//         criarToken(LOGICAL_OPERATOR, "=="),
+//         criarToken(BOOLEAN, "false"),
+//         criarToken(RPAREN, ")"),
+//         criarToken(THEN, "then"),
 //     };
-// executarTeste(tokens5,true);
 
-// std::vector<Token> tokensMatematicos = {
-//     criarToken(VAR, "var"),
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(COLON, ":"),
-//     criarToken(INTEGER, "int"), // Declara x como inteiro no escopo global
-//     criarToken(SEMICOLON, ";"),
+//     executarTeste(testeErroTipo, false);
 
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "10"),
-//     criarToken(SEMICOLON, ";"),
-
-//     criarToken(IDENTIFIER, "x"),
-//     criarToken(ASSIGNMENT, ":="),
-//     criarToken(INTEGER, "10.5"), // Tentativa de atribuir um REAL a uma variável INTEGER
-//     criarToken(PLUS,"+"),
-//     criarToken(INTEGER,"10"),
-//     criarToken(PLUS,"+"),
-//     criarToken(INTEGER,"10"),
-//     criarToken(PLUS,"+"),
-//     criarToken(REAL,"10.5"),
-//     criarToken(SEMICOLON, ";"), // Deve gerar erro de tipo
-// };
-
-// executarTeste(tokensMatematicos,false);
-
-// std::vector<Token> testeBasico = {
-//     criarToken(IF, "if"),
-//     criarToken(LPAREN, "("),
-//     criarToken(INTEGER, "10"),
-//     criarToken(LOGICAL_OPERATOR, "<"),
-//     criarToken(INTEGER, "9"),
-//     criarToken(RPAREN, ")"),
-//     criarToken(AND, "and"),
-//     criarToken(LPAREN, "("),
-//     criarToken(INTEGER, "1"),
-//     criarToken(LOGICAL_OPERATOR, ">"),
-//     criarToken(INTEGER, "9"),
-//     criarToken(RPAREN, ")"),
-//     criarToken(THEN, "then"),
-// };
-
-// executarTeste(testeBasico,true);
-
-std::vector<Token> testeErroTipo = {
-    // Declaração das variáveis
-    criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "x"),
-    criarToken(IDENTIFIER,"y"),
-    criarToken(IDENTIFIER,"z"),
-    criarToken(COLON, ":"),
-    criarToken(BOOLEAN, "bool"),
-    criarToken(SEMICOLON, ";"),
-
-
-    criarToken(IDENTIFIER,"z"),
-    criarToken(ASSIGNMENT,":="),
-    criarToken(BOOLEAN,"false"),
-    criarToken(SEMICOLON, ";"),
-
-    // Atribuições
-    criarToken(IDENTIFIER, "x"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(BOOLEAN, "true"),
-    criarToken(SEMICOLON, ";"),
-
-    criarToken(IDENTIFIER, "y"),
-    criarToken(ASSIGNMENT, ":="),
-    criarToken(BOOLEAN, "false"),
-    criarToken(SEMICOLON, ";"),
-
-    // Expressão condicional com erro de tipo
-    criarToken(IF, "if"),
-    criarToken(LPAREN, "("),
-    criarToken(IDENTIFIER, "x"),
-    criarToken(LOGICAL_OPERATOR, "=="),
-    criarToken(BOOLEAN, "true"),
-    criarToken(AND, "and"),
-    criarToken(IDENTIFIER, "y"),
-    criarToken(LOGICAL_OPERATOR, "=="),
-    criarToken(BOOLEAN, "false"),
-    criarToken(RPAREN, ")"),
-    criarToken(THEN, "then"),
-};
-
-executarTeste(testeErroTipo,false);
-return 0;
-}
+//     return 0;
+// }
