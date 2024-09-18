@@ -5,8 +5,8 @@
 g++ src/main.cpp src/lexical/Scanner/Scanner.cpp src/lexical/Token/Token.cpp -o compiler
 
 ## [Caio] novo comando para rodar, agora com o Parser.cpp
-g++ src/main.cpp src/lexical/Scanner/Scanner.cpp src/parser/Parser.cpp -o compiler
 
+g++ src/main.cpp src/lexical/Scanner/Scanner.cpp src/parser/Parser.cpp src/semantico/Semantico.cpp -o compiler
 
 ## Execute
 
