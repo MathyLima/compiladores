@@ -1,12 +1,10 @@
-//http://www.ybadoo.com.br/tutoriais/cmp/06/
-
 program test1;		{Este arquivo representa um programa correto}
 
 var			{Existem diversos erros que podem ser gerados neste arquivo. Alguns exemplos:}
  
   a,b,c: integer;      	
    
-  x,y,z: real;		{Declare novamente a variável "a" como real para que gere um erro "variável já declarada"}
+  x,y,z: real;		{Declare novamente a variï¿½vel "a" como real para que gere um erro "variï¿½vel jï¿½ declarada"}
   
   chave: boolean;
 
@@ -22,16 +20,16 @@ var			{Existem diversos erros que podem ser gerados neste arquivo. Alguns exempl
    
   var
       
-     resultado: integer; {Declare a variável "a" novamente. Neste caso não deve gerar erro poiso escopo é outro}
+     resultado: integer; {Declare a variï¿½vel "a" novamente. Neste caso nï¿½o deve gerar erro poiso escopo ï¿½ outro}
   
   begin
 
      resultado := 0;
       
      {LimparTela; adicione este procedimento}
-     while (entrada>0) do {no lugar de "entrada" use "input" e veja se gera o erro "variável não declarada" }
+     while (entrada>0) do {no lugar de "entrada" use "input" e veja se gera o erro "variï¿½vel nï¿½o declarada" }
                          resultado := resultado + entrada;
-     entrada := entrada - 1		{troque "1" por "chave" e veja se gera o erro "tipos incompatíveis"}	
+     entrada := entrada - 1		{troque "1" por "chave" e veja se gera o erro "tipos incompatï¿½veis"}	
      
   end;
 
@@ -43,13 +41,13 @@ begin
    LimparTela;
    
    Somatorio(a);
-   x:= y + z * (5.5 - c) / 2.567; {troque "x" por "a" e veja se gera o erro "tipos incompatíveis"}
+   x:= y + z * (5.5 - c) / 2.567; {troque "x" por "a" e veja se gera o erro "tipos incompatï¿½veis"}
   
    if chave then 
 
       if x <> z then {substitua x por chave} 
  
-         z := 5.0 {troque "5.0" por "test1" e veja se gera erro "Nome do programa não pode ser usado"}
+         z := 5.0 {troque "5.0" por "test1" e veja se gera erro "Nome do programa nï¿½o pode ser usado"}
   
       else
    
