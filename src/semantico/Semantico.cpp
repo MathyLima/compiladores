@@ -537,7 +537,7 @@ public:
                             std::cout<<tokenAtual.getText();
                             std::cout<<"\n";
                             // Verifica se o token anterior era um número (real ou inteiro)
-                            if (tokenAnterior.getType() == NUMBER) {
+                            if (tokenAnterior.getType() == INTEGER) {
                                 // Após um número, esperamos um operador relacional
                                 if (tokenAtual.getType() != REL_OPERATOR) {
                                     throw std::runtime_error("Erro: Operador relacional esperado após número.");
@@ -546,7 +546,7 @@ public:
                             // Verifica se o token anterior era um operador relacional
                             else if (tokenAnterior.getType() == REL_OPERATOR) {
                                 // Após um operador relacional, esperamos um número (real ou inteiro)
-                                if (tokenAtual.getType() != NUMBER) {
+                                if (tokenAtual.getType() != INTEGER) {
                                     throw std::runtime_error("Erro: Número esperado após operador relacional.");
                                 }
                             }
@@ -586,12 +586,7 @@ public:
                 break;
             }
 
-            default: criarToken(VAR, "var"),
-    criarToken(IDENTIFIER, "x"),
-    criarToken(COLON, ":"),
-    criarToken(BOOLEAN, "bool"),
-    criarToken(SEMICOLON, ";"),
-
+            default: 
                 std::cout << "Token não processado: " << token.getText() << "\n";
                 break;
         }
