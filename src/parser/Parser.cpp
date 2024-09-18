@@ -618,10 +618,14 @@ ASTNode *Parser::parse_factor()
     }
     else if (current_token.type == LPAREN)
     {
-        advance();
-        ASTNode *exprNode = parse_expression();
-        expect(RPAREN);
-        return exprNode;
+        // Adicionando os parênteses na árvore sintática
+        ASTNode *parenNode = new ASTNode({LPAREN, "(", current_token.line});
+        advance(); // Avança após '('
+
+        parenNode->addChild(parse_expression());
+
+        parenNode->addChild(expect(RPAREN)); // Adiciona o ')' à árvore
+        return parenNode;
     }
     else if (current_token.type == NOT)
     {

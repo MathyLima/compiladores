@@ -1,16 +1,18 @@
 program Test4;
 var
    A, B, R, I : integer;
+   J:boolean;
 
-procedure teste (A:integer, B:real);
+procedure teste (A:boolean, B:real,C:real);
 var
    S,X: real;
 begin
-   S := A + B * X
-end;  {verifique se esse ";" no fechamento de um procedimento é necessário}
+   S := 1;
+   S := A + B - C* X
+end;  {O ";" aqui no final do procedimento é necessário em Pascal}
 
 begin
-   while (I <= 5) do
+   while (C <= 5) do
    begin
       A := A+1;
       B := B-1;
@@ -18,5 +20,3 @@ begin
       I := I + 1
    end
 end.
-
-{retirar algumas palavras reservadas para gerar erros sintáticos}
