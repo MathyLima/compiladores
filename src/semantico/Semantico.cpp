@@ -280,7 +280,7 @@ Token AnalisadorSemantico::buscarVariavel(const std::string &nome)
         }
         escoposAux.pop();
     }
-    throw std::runtime_error("Variável não declarada: " + nome);
+    throw std::runtime_error("Variável não declarada,erro ao buscar a variável: " + nome);
 }
 
 bool AnalisadorSemantico::atribuirValorVariavel(const std::string &nome, const std::string &valor, TokenType tokenAtribuicao)
@@ -301,7 +301,7 @@ bool AnalisadorSemantico::atribuirValorVariavel(const std::string &nome, const s
     }
 
     // Se chegar aqui, a variável não foi encontrada
-    throw std::runtime_error("Variável não declarada: " + nome);
+    throw std::runtime_error("Variável não declarada, erro ao atribuir valor: " + nome);
 }
 
 // Implementação da função processarBloco
@@ -402,7 +402,10 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
         case END:
         {
             std::cout << "Finalizando escopo linha("+token.getRow()+")\n";
-            Token tokenProcessadoFinal = buscarVariavel(tokenProcessado.getText());
+            Token tokenProcessadoFinal;
+            if(tokenProcessado.getType()!=NONE){
+                tokenProcessadoFinal = buscarVariavel(tokenProcessado.getText());
+            }
                 if (pilhaOperandos.size() > 1)
                 {
                     while (!pilhaOperandos.empty())
@@ -476,10 +479,10 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
                     if(verificaVariavelExiste(token.getText())){
                         std::cout<<"AQUI ESTOU "<<token.getText()<<"  ";
                         if(tipoAtual == PROCEDURE){
-                            throw std::runtime_error("Erro: tentativa de redeclaração de procedure no mesmo escopo linha: "+ token.getRow());
+                            throw std::runtime_error("Erro: tentativa de redeclaração da procedure "+token.getText()+"  no mesmo escopo linha: "+ token.getRow());
                         }else{
                             if(scopeStack.top().verificaVariavelExiste(token.getText())){
-                                throw std::runtime_error("Erro: tentativa de redeclaração de variável no mesmo escopo linha "+ token.getRow());
+                                throw std::runtime_error("Erro: tentativa de redeclaração da variável "+ token.getText() + " no mesmo escopo linha "+ token.getRow());
 
                             }
                         }
@@ -527,7 +530,7 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
                 }
                 else
                 {
-                    throw std::runtime_error("Variável não existe no escopo atual linha("+token.getRow()+")");
+                    throw std::runtime_error("Variável "+ token.getText() + " não existe no escopo atual linha("+token.getRow()+")");
                 }
             }
             break;
@@ -769,7 +772,7 @@ void AnalisadorSemantico::processarBloco(const std::vector<Token> &tokens)
                 std::cout << "Entrada de parâmetros para procedimento linha("+token.getRow()+")\n";
             }
             if(!pilhaOperandos.empty()){
-                if(pilhaOperandos.top().getType() == LOGICAL_OPERATOR){
+                if( pilhaOperandos.top().getType() == LOGICAL_OPERATOR){
                     pilhaOperandos.pop();
                 }
             }

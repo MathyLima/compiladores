@@ -1,14 +1,12 @@
-program Test5;
+program TestSemanticError;
 var
-   A, B, R, I : integer;
+   I, J: integer;
 begin
    for I := 1 to 5 do
    begin
-      A := A * A;
-      B := B * A;
-      R := A + B
-   end
+      for J := 1 to 3 do
+      begin
+         K := I + J;  { Erro: Variável K não foi declarada }
+      end
+   end;
 end.
-
-{utilizar mais de um for - encadeado}
-{cuidado com o ";" entenda o que a gramática está pedindo}
