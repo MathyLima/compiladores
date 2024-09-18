@@ -21,8 +21,7 @@ int main()
         std::string filePath = entry.path().string();
         
         // Verifica se o arquivo é o específico que queremos testar
-        if (filePath.find(specificFileName) != std::string::npos)
-        {
+       
             std::cout << "====================\n";
             std::cout << "Testando arquivo: " << filePath << std::endl;
             std::cout << "====================\n";
@@ -82,9 +81,8 @@ int main()
             }
 
             std::cout << "====================\n";
-            break; // Para sair do loop após testar o arquivo específico
         }
-    }
+    
 
     return 0;
 }

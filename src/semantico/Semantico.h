@@ -16,7 +16,6 @@ struct Simbolo
 {
     TokenType tipo; // Usando TokenType em vez de Tipo
     bool inicializado;
-    bool constante;
     std::string valor;
 };
 
@@ -38,25 +37,18 @@ class TabelaSimbolos
 {
 private:
     std::unordered_map<std::string, Simbolo> variaveis;
-    std::unordered_map<std::string, Funcao> funcoes;
-    std::unordered_map<std::string, Procedimento> procedimentos;
-
+    
 public:
-    void inserirVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "", bool constante = false);
-    void inserirFuncao(const std::string &nome, TokenType tipoRetorno, const std::vector<TokenType> &parametros);
-    void inserirProcedimento(const std::string &nome, const std::vector<TokenType> &parametros);
+    void inserirVariavel(const std::string &nome, TokenType tipo, const std::string &valor = "");
+    
 
     bool verificaVariavelExiste(const std::string &nome);
-    bool verificaFuncaoExiste(const std::string &nome);
-    bool verificaProcedimentoExiste(const std::string &nome);
-    bool verificaConstante(const std::string &nome);
+    
 
     TokenType getTipoVariavel(const std::string &nome);
     std::string getValorVariavel(const std::string &nome);
-    Funcao getFuncao(const std::string &nome);
-    Procedimento getProcedimento(const std::string &nome);
+    
 
-    void marcarInicializada(const std::string &nome);
     void atribuiValorVariavel(const std::string &nome, const std::string &valor, TokenType tokenAtribuido);
     bool verificarTipoValor(TokenType tipo, const std::string &valor, TokenType tokenAtribuido);
 };
@@ -77,7 +69,6 @@ public:
     void declararFuncao(const std::string &nome, TokenType tipoRetorno, std::vector<TokenType> &parametros);
     void finalizarFuncao();
     bool checkAtribuicao(const std::string &nome, TokenType valorTipo);
-    bool checkOperacoes(TokenType tipo1, TokenType tipo2, TokenType valorTipo, const std::string &operador);
 
     bool verificaVariavelExiste(const std::string &nome);
     Token buscarVariavel(const std::string &nome);

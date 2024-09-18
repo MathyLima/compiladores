@@ -14,7 +14,7 @@ var			{Existem diversos erros que podem ser gerados neste arquivo. Alguns exempl
    
   end;
 
- 
+
 
   procedure Somatorio(entrada:integer);
    
