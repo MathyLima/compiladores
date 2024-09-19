@@ -130,7 +130,7 @@ Token Scanner::nextToken()
                 state = 2;
             }
             break;
-
+    
         case 2:
             existReserved = reservedWords.find(content);
             if (existReserved != reservedWords.end())

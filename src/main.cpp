@@ -13,7 +13,7 @@ int main()
 {
     // Diretório onde estão os arquivos de teste
     std::string testDirectory = "src/arquivosTeste/benchmark-arquivos_testes";
-    std::string specificFileName = "Test6.pas"; // Nome do arquivo específico para teste
+    std::string specificFileName = "Test4.pas"; // Nome do arquivo específico para teste
 
     // Itera sobre os arquivos de teste no diretório
     for (const auto &entry : fs::directory_iterator(testDirectory))
@@ -81,8 +81,9 @@ int main()
             }
 
             std::cout << "====================\n";
+            // break; // Para sair do loop após testar o arquivo específico
         }
-    
-
     return 0;
-}
+    }
+
+
